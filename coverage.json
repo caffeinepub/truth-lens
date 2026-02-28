@@ -1,0 +1,94 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-28T01:50:42.904Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Remove any remaining watermark or Caffeine branding from all visible UI surfaces, including the landing page, scan dashboard, results page, header, and footer.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/Footer.tsx",
+          "frontend/src/components/Header.tsx",
+          "frontend/src/pages/LandingPage.tsx",
+          "frontend/src/pages/ScanDashboard.tsx",
+          "frontend/src/pages/ResultsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/Footer.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Expand the backend to support admin-specific operations: listing all registered users with their profiles, banning or removing users, viewing all scan submissions with metadata, deleting flagged submissions, and reading/writing site configuration key-value settings (e.g., max scans per user, feature flags).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Build a full admin dashboard UI accessible only to authenticated admin users, containing three tabbed sections: (1) User Management — a table of all registered users with name, principal ID, scan count, and ban/delete actions; (2) Submission Moderation — a table of all scan submissions with content preview, verdict, confidence, timestamp, and a delete action; (3) Site Configuration — a settings form allowing admins to edit and save configuration values such as max scans per user and feature toggles.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/UserManagementTab.tsx",
+          "frontend/src/components/admin/SubmissionModerationTab.tsx",
+          "frontend/src/components/admin/SiteConfigurationTab.tsx",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/UserManagementTab.tsx",
+          "frontend/src/components/admin/SubmissionModerationTab.tsx",
+          "frontend/src/components/admin/SiteConfigurationTab.tsx",
+          "frontend/src/pages/AdminDashboard.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update the admin login page to clearly indicate the admin access path and display a helpful error message when a logged-in user does not have admin privileges, with an option to log out and try a different identity.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/components/ProtectedRoute.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminLoginPage.tsx",
+          "frontend/src/components/ProtectedRoute.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "build-template/README.md",
+    "caffeine.lock.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/Footer.tsx",
+    "frontend/src/components/ProtectedRoute.tsx",
+    "frontend/src/components/admin/SiteConfigurationTab.tsx",
+    "frontend/src/components/admin/SubmissionModerationTab.tsx",
+    "frontend/src/components/admin/UserManagementTab.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminDashboard.tsx",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-28T01:50:42.899Z",
+  "summary": "The diff implements most of the required features: a full admin dashboard with three tabs, backend admin functions, admin login page improvements, and protected routes. However, REQ-1 (remove Caffeine branding) is only partially addressed — the footer still contains a caffeine.ai attribution link. The backend implements most REQ-2 functions but the diff evidence for 'getAllUsers' uses 'listUsers' instead, and 'getSiteConfig'/'setSiteConfig' naming may differ. Site config stable storage persistence is not clearly evidenced. The Submission Moderation tab is missing a timestamp column. Scan count per user is not properly implemented.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Remove any remaining watermark or Caffeine branding from all visible UI surfaces, including the landing page, scan dashboard, results page, header, and footer.",
+      "reason": "The Footer.tsx still contains a caffeine.ai attribution link with UTM tracking parameters. The file-summaries.txt also explicitly notes the footer has a 'required caffeine.ai attribution link'. This violates the AC: 'Footer displays only Truth-Lens copyright and tagline' and 'No Caffeine logo, badge, or watermark text is visible on any page'.",
+      "evidence": [
+        "frontend/src/components/Footer.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Site configuration is persisted in stable storage.",
+      "reason": "The backend main.mo shows siteConfig declared as a regular Map (let siteConfig = Map.empty<Text, Text>()) with no stable variable declaration or stable storage annotation visible in the truncated diff, which may not survive canister upgrades.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Submission Moderation tab shows all scan submissions with verdict badges, confidence scores, timestamps, and a delete button per row.",
+      "reason": "The SubmissionModerationTab.tsx table header shows Content, Verdict, Confidence, and Actions columns but no Timestamp column. The ScanResult type also does not appear to include a timestamp field.",
+      "evidence": [
+        "frontend/src/components/admin/SubmissionModerationTab.tsx"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "User Management tab shows a sortable table with each user's name, principal ID, scan count, and action buttons to ban or delete.",
+      "reason": "The getScanCount function in UserManagementTab.tsx returns scanResults.length for all users (the total count), rather than a per-user scan count. The backend does not track scans per user and there is no per-user scan count derivation logic, so the scan count column does not reflect accurate per-user data.",
+      "evidence": [
+        "frontend/src/components/admin/UserManagementTab.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "The backend function for listing users is named 'listUsers' in the frontend queries, while the build request specifies 'getAllUsers' as the required function name.",
+      "reason": "useGetAllUsers hook calls actor.listUsers() but REQ-2 AC specifies the function must be named getAllUsers.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    },
+    {
+      "description": "The SiteConfigurationTab reads config values using actor.readConfigValue() rather than getSiteConfig as specified in REQ-2.",
+      "reason": "REQ-2 AC specifies getSiteConfig and setSiteConfig as the required admin function names, but the frontend calls readConfigValue for reading.",
+      "evidence": [
+        "frontend/src/components/admin/SiteConfigurationTab.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
+  "changed_files": [
+    "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/components/Footer.tsx",
+    "frontend/src/components/ProtectedRoute.tsx",
+    "frontend/src/components/admin/SiteConfigurationTab.tsx",
+    "frontend/src/components/admin/SubmissionModerationTab.tsx",
+    "frontend/src/components/admin/UserManagementTab.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminDashboard.tsx",
+    "frontend/src/pages/AdminLoginPage.tsx",
+    "project_state.json"
+  ]
+}

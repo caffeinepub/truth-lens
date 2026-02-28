@@ -1,0 +1,73 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-remove-any-remaining-watermark-or-caffeine-branding-from-all-visible-ui-surfaces-including-the-landing-page-scan-dashboard-results-page-header-and-footer",
+      "featureTitle": "Remove any remaining watermark or Caffeine branding from all visible UI surfaces, including the landing page, scan dashboard, results page, header, and footer.",
+      "files": [
+        "frontend/src/components/Footer.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-build-a-full-admin-dashboard-ui-accessible-only-to-authenticated-admin-users-containing-three-tabbed-sections-1-user-management-a-table-of-all-registered-users-with-name-principal-id-scan-count-and-ban-delete-actions-2-submission-moderation-a-table-of-all-scan-submissions-with-content-preview-verdict-confidence-timestamp-and-a-delete-action-3-site-configuration-a-settings-form-allowing-admins-to-edit-and-save-configuration-values-such-as-max-scans-per-user-and-feature-toggles",
+      "featureTitle": "Build a full admin dashboard UI accessible only to authenticated admin users, containing three tabbed sections: (1) User Management — a table of all registered users with name, principal ID, scan count, and ban/delete actions; (2) Submission Moderation — a table of all scan submissions with content preview, verdict, confidence, timestamp, and a delete action; (3) Site Configuration — a settings form allowing admins to edit and save configuration values such as max scans per user and feature toggles.",
+      "files": [
+        "frontend/src/components/admin/SiteConfigurationTab.tsx",
+        "frontend/src/components/admin/SubmissionModerationTab.tsx",
+        "frontend/src/components/admin/UserManagementTab.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminDashboard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-admin-login-page-to-clearly-indicate-the-admin-access-path-and-display-a-helpful-error-message-when-a-logged-in-user-does-not-have-admin-privileges-with-an-option-to-log-out-and-try-a-different-identity",
+      "featureTitle": "Update the admin login page to clearly indicate the admin access path and display a helpful error message when a logged-in user does not have admin privileges, with an option to log out and try a different identity.",
+      "files": [
+        "frontend/src/components/ProtectedRoute.tsx",
+        "frontend/src/pages/AdminLoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

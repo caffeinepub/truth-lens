@@ -1,0 +1,99 @@
+{
+  "kind": "build_request",
+  "title": "Remove watermark and add full admin panel with user management, moderation, and site configuration",
+  "projectName": "Truth-Lens",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Remove any remaining watermark or Caffeine branding from all visible UI surfaces, including the landing page, scan dashboard, results page, header, and footer.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "can you remove the water marker"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No Caffeine logo, badge, or watermark text is visible on any page.",
+        "Footer displays only Truth-Lens copyright and tagline.",
+        "Header contains no third-party branding."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Expand the backend to support admin-specific operations: listing all registered users with their profiles, banning or removing users, viewing all scan submissions with metadata, deleting flagged submissions, and reading/writing site configuration key-value settings (e.g., max scans per user, feature flags).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Admin panel access with features like: manage users, view/moderate content submissions, and site configuration"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin-only backend functions exist for: getAllUsers, banUser, deleteUser, getAllSubmissions, deleteSubmission, getSiteConfig, setSiteConfig.",
+        "All admin functions enforce role-based access control and reject non-admin callers.",
+        "Site configuration is persisted in stable storage."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Build a full admin dashboard UI accessible only to authenticated admin users, containing three tabbed sections: (1) User Management — a table of all registered users with name, principal ID, scan count, and ban/delete actions; (2) Submission Moderation — a table of all scan submissions with content preview, verdict, confidence, timestamp, and a delete action; (3) Site Configuration — a settings form allowing admins to edit and save configuration values such as max scans per user and feature toggles.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Admin panel access with features like: manage users, view/moderate content submissions, and site configuration"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin dashboard has three clearly labeled tabs: User Management, Submission Moderation, and Site Configuration.",
+        "User Management tab shows a sortable table with each user's name, principal ID, scan count, and action buttons to ban or delete.",
+        "Submission Moderation tab shows all scan submissions with verdict badges, confidence scores, timestamps, and a delete button per row.",
+        "Site Configuration tab renders a form with labeled fields for each config key; changes are saved via a submit button with success/error feedback.",
+        "All three tabs use React Query mutations/queries and reflect live backend data.",
+        "Non-admin users are redirected away from the admin dashboard.",
+        "UI matches the existing cyberpunk/dark theme of the app."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update the admin login page to clearly indicate the admin access path and display a helpful error message when a logged-in user does not have admin privileges, with an option to log out and try a different identity.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "give me tha admin access"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin login page shows a clear 'Admin Access' heading and description.",
+        "If the authenticated principal is not an admin, an 'Access Denied' error message is shown with a logout/retry option.",
+        "Successful admin authentication redirects to the admin dashboard."
+      ]
+    }
+  ],
+  "constraints": [
+    "All admin backend functions must enforce role-based access control and reject non-admin principals.",
+    "Do not modify files in frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "All Motoko logic must remain in the single backend/main.mo actor."
+  ],
+  "nonGoals": [
+    "No new authentication mechanism beyond Internet Identity.",
+    "No external database or third-party service integrations.",
+    "No real-time notifications or WebSocket features.",
+    "No email or SMS alerts for admin events."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

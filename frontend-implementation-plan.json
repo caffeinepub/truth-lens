@@ -1,0 +1,104 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Remove watermark and add full admin panel with user management, moderation, and site configuration",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Remove any remaining watermark or Caffeine branding from all visible UI surfaces",
+      "acceptanceCriteria": [
+        "No Caffeine logo, badge, or watermark text is visible on any page.",
+        "Footer displays only Truth-Lens copyright and tagline.",
+        "Header contains no third-party branding."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Footer.tsx",
+          "operation": "modify",
+          "description": "Remove any remaining Caffeine branding, ensuring only Truth-Lens copyright and tagline are displayed."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Remove any Caffeine logo or third-party branding from the header, keeping only Truth-Lens navigation and login."
+        },
+        {
+          "path": "frontend/src/pages/LandingPage.tsx",
+          "operation": "modify",
+          "description": "Remove any watermark or Caffeine branding from the hero section and all landing page content."
+        },
+        {
+          "path": "frontend/src/pages/ScanDashboard.tsx",
+          "operation": "modify",
+          "description": "Remove any watermark or branding from the scan dashboard page."
+        },
+        {
+          "path": "frontend/src/pages/ResultsPage.tsx",
+          "operation": "modify",
+          "description": "Remove any watermark or branding from the results page display."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Build a full admin dashboard UI with User Management, Submission Moderation, and Site Configuration tabs",
+      "acceptanceCriteria": [
+        "Admin dashboard has three clearly labeled tabs: User Management, Submission Moderation, and Site Configuration.",
+        "User Management tab shows a sortable table with each user's name, principal ID, scan count, and action buttons to ban or delete.",
+        "Submission Moderation tab shows all scan submissions with verdict badges, confidence scores, timestamps, and a delete button per row.",
+        "Site Configuration tab renders a form with labeled fields for each config key; changes are saved via a submit button with success/error feedback.",
+        "All three tabs use React Query mutations/queries and reflect live backend data.",
+        "Non-admin users are redirected away from the admin dashboard.",
+        "UI matches the existing cyberpunk/dark theme of the app."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks for admin operations: useGetAllUsers (fetches listUsers), useBanUser (calls banUser), useDeleteUser (calls removeUser), useGetAllSubmissions (calls getAllScanResults), useDeleteSubmission (calls deleteScanResult), useGetSiteConfig (calls readConfigValue), and useSaveSiteConfig (calls saveConfigValue). Each mutation should invalidate relevant queries on success."
+        },
+        {
+          "path": "frontend/src/components/admin/UserManagementTab.tsx",
+          "operation": "create",
+          "description": "Create a User Management tab component that fetches all users via useGetAllUsers, displays them in a shadcn Table with columns for name, principal ID, scan count (derived from submission data), and action buttons (ban, delete). Use useBanUser and useDeleteUser mutations with loading states and toast notifications on success/error. Include sorting functionality and match the cyberpunk theme."
+        },
+        {
+          "path": "frontend/src/components/admin/SubmissionModerationTab.tsx",
+          "operation": "create",
+          "description": "Create a Submission Moderation tab component that fetches all scan results via useGetAllSubmissions, displays them in a shadcn Table with columns for content preview (truncated), verdict badge (safe/unsafe styled), confidence score with progress bar, timestamp, and a delete button. Use useDeleteSubmission mutation with confirmation dialog, loading states, and toast feedback. Match the cyberpunk theme."
+        },
+        {
+          "path": "frontend/src/components/admin/SiteConfigurationTab.tsx",
+          "operation": "create",
+          "description": "Create a Site Configuration tab component that renders a form with fields for configurable settings (e.g., 'maxScansPerUser', 'featureFlagX'). Fetch current values via useGetSiteConfig for each key on mount. Provide labeled input fields, a submit button that calls useSaveSiteConfig for each changed key, and display success/error feedback via toast notifications. Match the cyberpunk theme."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Replace the current admin dashboard content with a tabbed interface using shadcn Tabs component. Include three tabs: 'User Management' (renders UserManagementTab), 'Submission Moderation' (renders SubmissionModerationTab), and 'Site Configuration' (renders SiteConfigurationTab). Remove the existing scan results table and summary stats, keeping only the admin logout button. Ensure the dashboard remains protected by ProtectedRoute and matches the cyberpunk theme."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Update the admin login page to clearly indicate admin access and handle non-admin access errors",
+      "acceptanceCriteria": [
+        "Admin login page shows a clear 'Admin Access' heading and description.",
+        "If the authenticated principal is not an admin, an 'Access Denied' error message is shown with a logout/retry option.",
+        "Successful admin authentication redirects to the admin dashboard."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AdminLoginPage.tsx",
+          "operation": "modify",
+          "description": "Update the page heading to 'Admin Access' with a descriptive subtitle explaining this is for administrators only. Enhance the access denied message shown when useIsCallerAdmin returns false to include a logout button that clears the identity and allows retry. Improve layout and messaging to match the cyberpunk theme and provide clear user guidance."
+        },
+        {
+          "path": "frontend/src/components/ProtectedRoute.tsx",
+          "operation": "modify",
+          "description": "Enhance the 'Access Denied' message displayed when an authenticated user lacks admin privileges. Add a logout button that calls the useInternetIdentity clear function and queryClient.clear() to allow the user to retry with a different identity. Improve the styling to match the cyberpunk theme."
+        }
+      ]
+    }
+  ]
+}
