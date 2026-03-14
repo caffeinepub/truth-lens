@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Sora";
+  src: url("/assets/fonts/Sora.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/JetBrainsMono.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 800;
+  font-style: normal;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --background: 0.98 0 0;
+    --foreground: 0.15 0 0;
+    --card: 1 0 0;
+    --card-foreground: 0.15 0 0;
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0 0;
+    --primary: 0.55 0.15 220;
+    --primary-foreground: 0.98 0 0;
+    --secondary: 0.92 0 0;
+    --secondary-foreground: 0.15 0 0;
+    --muted: 0.92 0 0;
+    --muted-foreground: 0.5 0 0;
+    --accent: 0.55 0.2 160;
+    --accent-foreground: 0.98 0 0;
+    --destructive: 0.6 0.25 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.85 0 0;
+    --input: 0.85 0 0;
+    --ring: 0.55 0.15 220;
+    --chart-1: 0.55 0.2 160;
+    --chart-2: 0.55 0.15 220;
+    --chart-3: 0.6 0.25 25;
+    --chart-4: 0.7 0.18 280;
+    --chart-5: 0.65 0.2 50;
+    --sidebar: 0.98 0 0;
+    --sidebar-foreground: 0.15 0 0;
+    --sidebar-primary: 0.55 0.15 220;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.92 0 0;
+    --sidebar-accent-foreground: 0.15 0 0;
+    --sidebar-border: 0.85 0 0;
+    --sidebar-ring: 0.55 0.15 220;
+
+    --cyber-neon-blue: 0.65 0.25 220;
+    --cyber-neon-green: 0.7 0.28 160;
+    --cyber-dark-bg: 0.12 0.02 240;
+    --cyber-darker-bg: 0.08 0.02 240;
+  }
+
+  .dark {
+    --background: 0.12 0.02 240;
+    --foreground: 0.95 0.05 220;
+    --card: 0.16 0.03 240;
+    --card-foreground: 0.95 0.05 220;
+    --popover: 0.14 0.02 240;
+    --popover-foreground: 0.95 0.05 220;
+    --primary: 0.65 0.25 220;
+    --primary-foreground: 0.98 0 0;
+    --secondary: 0.2 0.03 240;
+    --secondary-foreground: 0.95 0.05 220;
+    --muted: 0.2 0.03 240;
+    --muted-foreground: 0.6 0.05 220;
+    --accent: 0.7 0.28 160;
+    --accent-foreground: 0.98 0 0;
+    --destructive: 0.6 0.25 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.25 0.05 240;
+    --input: 0.2 0.05 240;
+    --ring: 0.65 0.25 220;
+    --chart-1: 0.7 0.28 160;
+    --chart-2: 0.65 0.25 220;
+    --chart-3: 0.6 0.25 25;
+    --chart-4: 0.7 0.18 280;
+    --chart-5: 0.65 0.2 50;
+    --sidebar: 0.14 0.02 240;
+    --sidebar-foreground: 0.95 0.05 220;
+    --sidebar-primary: 0.65 0.25 220;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.2 0.03 240;
+    --sidebar-accent-foreground: 0.95 0.05 220;
+    --sidebar-border: 0.25 0.05 240;
+    --sidebar-ring: 0.65 0.25 220;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Sora", system-ui, sans-serif;
+  }
+  code,
+  pre,
+  .font-mono {
+    font-family: "JetBrains Mono", monospace;
+  }
+}
+
+@layer utilities {
+  .cyber-glow {
+    text-shadow: 0 0 10px oklch(var(--primary)), 0 0 20px
+      oklch(var(--primary) / 0.5);
+  }
+
+  .cyber-glow-green {
+    text-shadow: 0 0 10px oklch(var(--accent)), 0 0 20px
+      oklch(var(--accent) / 0.5);
+  }
+
+  .cyber-border {
+    border: 1px solid oklch(var(--primary) / 0.3);
+    box-shadow: 0 0 10px oklch(var(--primary) / 0.2);
+  }
+
+  .cyber-border-green {
+    border: 1px solid oklch(var(--accent) / 0.3);
+    box-shadow: 0 0 10px oklch(var(--accent) / 0.2);
+  }
+}

@@ -1,19 +1,36 @@
-# Specification
+# Truth-Lens
 
-## Summary
-**Goal:** Remove all third-party watermarks/branding from the Truth-Lens UI and add a full admin panel with user management, submission moderation, and site configuration.
+## Current State
+- App has Internet Identity-based login (no username/password for users)
+- No user registration page
+- No dedicated user login page
+- Admin login at `/admin/login` with username `KiranManvi@2023` / password `Kirankumar@2004`
+- Homepage has a hero section, features grid, and CTA but no admin login link
+- Header shows a single Login/Logout button using Internet Identity
 
-**Planned changes:**
-- Remove all Caffeine branding, logos, and watermarks from every UI surface (landing page, scan dashboard, results page, header, footer)
-- Footer updated to display only Truth-Lens copyright and tagline
-- Add backend admin-only functions: `getAllUsers`, `banUser`, `deleteUser`, `getAllSubmissions`, `deleteSubmission`, `getSiteConfig`, `setSiteConfig` — all enforcing role-based access control
-- Persist site configuration in stable storage
-- Build an admin dashboard UI (accessible only to admin users) with three tabs:
-  - **User Management**: sortable table of users with name, principal ID, scan count, ban/delete actions
-  - **Submission Moderation**: table of all scan submissions with verdict badges, confidence scores, timestamps, and delete action
-  - **Site Configuration**: form to edit and save config values (e.g., max scans per user, feature toggles)
-- Update admin login page with a clear "Admin Access" heading, an "Access Denied" message with logout/retry option for non-admin users, and redirect to dashboard on successful login
-- Non-admin users are redirected away from the admin dashboard
-- Admin dashboard matches the existing cyberpunk/dark theme
+## Requested Changes (Diff)
 
-**User-visible outcome:** The app no longer shows any Caffeine branding. Admin users can log in to a dedicated dashboard to manage users, moderate scan submissions, and configure site settings, while non-admin users are blocked from accessing admin pages.
+### Add
+- `/login` page -- user login form (username + password stored in localStorage)
+- `/register` page -- user registration form (username, password, full name)
+- Admin Login button/link on the homepage (visible in the hero/CTA section)
+- Header navigation: show `Login` and `Register` links for guests, `Logout` for logged-in users
+- User auth context using localStorage to persist session
+
+### Modify
+- `Header.tsx` -- replace Internet Identity login with links to `/login` and `/register` for guests
+- `LandingPage.tsx` -- add Admin Login button in the bottom CTA section
+- `App.tsx` -- add routes for `/login` and `/register`
+- `ScanDashboard.tsx` -- check local user auth instead of Internet Identity
+
+### Remove
+- Internet Identity login flow from the user-facing header/scan dashboard (admin still uses II indirectly via Motoko, but user-facing auth is now username/password)
+
+## Implementation Plan
+1. Create `src/frontend/src/utils/userAuth.ts` -- helpers for register/login/logout using localStorage
+2. Create `src/frontend/src/pages/UserLoginPage.tsx` -- login form with username + password
+3. Create `src/frontend/src/pages/UserRegisterPage.tsx` -- registration form with name, username, password
+4. Update `Header.tsx` -- show Login/Register for guests, username + Logout for logged-in users
+5. Update `LandingPage.tsx` -- add Admin Login link in CTA section
+6. Update `App.tsx` -- add `/login` and `/register` routes
+7. Update `ScanDashboard.tsx` -- use local user auth check
