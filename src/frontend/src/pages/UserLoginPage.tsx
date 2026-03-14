@@ -32,7 +32,7 @@ export default function UserLoginPage() {
         setError(result.err);
         setIsLoading(false);
       } else {
-        navigate({ to: "/scan" });
+        navigate({ to: "/profile" });
       }
     }, 300);
   };

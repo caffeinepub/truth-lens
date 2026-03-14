@@ -8,7 +8,6 @@ export default function Header() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
-  // Re-check on focus (user may have logged in/out in another tab)
   useEffect(() => {
     const onFocus = () => setCurrentUser(getCurrentUser());
     window.addEventListener("focus", onFocus);
@@ -23,13 +22,17 @@ export default function Header() {
 
   return (
     <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link
+            to="/"
+            className="flex items-center gap-2 group"
+            data-ocid="header.home.link"
+          >
             <img
-              src="/assets/generated/logo-transparent.dim_256x256.png"
+              src="/assets/generated/truth-lens-logo-transparent.dim_256x256.png"
               alt="Truth-Lens"
-              className="h-10 w-10"
+              className="h-14 w-14 drop-shadow-[0_0_8px_rgba(0,200,255,0.5)]"
             />
             <span className="text-2xl font-bold cyber-glow group-hover:cyber-glow-green transition-all">
               Truth-Lens

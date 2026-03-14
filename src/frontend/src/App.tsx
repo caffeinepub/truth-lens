@@ -14,6 +14,7 @@ import LandingPage from "./pages/LandingPage";
 import ResultsPage from "./pages/ResultsPage";
 import ScanDashboard from "./pages/ScanDashboard";
 import UserLoginPage from "./pages/UserLoginPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import UserRegisterPage from "./pages/UserRegisterPage";
 
 const rootRoute = createRootRoute({ component: Layout });
@@ -31,6 +32,11 @@ const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/register",
   component: UserRegisterPage,
+});
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: UserProfilePage,
 });
 const scanRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -61,6 +67,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   registerRoute,
+  profileRoute,
   scanRoute,
   resultsRoute,
   adminLoginRoute,

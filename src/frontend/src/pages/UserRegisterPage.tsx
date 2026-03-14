@@ -51,7 +51,7 @@ export default function UserRegisterPage() {
         return;
       }
       loginUser(username.trim(), password);
-      navigate({ to: "/scan" });
+      navigate({ to: "/profile" });
     }, 300);
   };
 
