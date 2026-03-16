@@ -10,50 +10,61 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Eye, EyeOff, Lock, Shield } from "lucide-react";
-import { useState } from "react";
-import { loginUser } from "../utils/userAuth";
+import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getCurrentUser, loginUser } from "../utils/userAuth";
 
 export default function UserLoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (getCurrentUser()) navigate({ to: "/profile" });
+  }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    setLoading(true);
     setTimeout(() => {
       const result = loginUser(username.trim(), password);
-      if ("err" in result) {
-        setError(result.err);
-        setIsLoading(false);
-      } else {
+      if ("ok" in result) {
+        window.dispatchEvent(new Event("tl-auth-change"));
         navigate({ to: "/profile" });
+      } else {
+        setError(result.err);
+        setLoading(false);
       }
     }, 300);
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div
+      className="relative min-h-[80vh] flex items-center justify-center px-4 py-12"
+      style={{
+        backgroundImage: "url(/assets/generated/hero-bg.dim_1920x1080.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="absolute inset-0 bg-background/80" />
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="relative">
-              <Shield className="h-16 w-16 text-primary cyber-glow" />
-              <Lock className="h-6 w-6 text-accent absolute -bottom-1 -right-1 bg-card rounded-full p-0.5" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold mb-2 cyber-glow">Welcome Back</h1>
-          <p className="text-muted-foreground">
+          <img
+            src="/assets/generated/logo-transparent.dim_256x256.png"
+            alt="Truth-Lens"
+            className="h-20 w-20 mx-auto mb-4 drop-shadow-[0_0_16px_oklch(var(--primary)/0.7)]"
+          />
+          <h1 className="text-3xl font-bold cyber-glow">Welcome Back</h1>
+          <p className="text-muted-foreground mt-1">
             Sign in to your Truth-Lens account
           </p>
         </div>
-
-        <Card className="cyber-border shadow-cyber-glow bg-card/50 backdrop-blur-sm">
+        <Card className="cyber-border bg-card/70 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>User Login</CardTitle>
             <CardDescription>
@@ -67,11 +78,11 @@ export default function UserLoginPage() {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="your_username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="cyber-border bg-background/50"
-                  disabled={isLoading}
+                  disabled={loading}
                   autoComplete="username"
                   data-ocid="login.input"
                 />
@@ -81,22 +92,22 @@ export default function UserLoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    type={showPw ? "text" : "password"}
+                    placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="cyber-border bg-background/50 pr-10"
-                    disabled={isLoading}
+                    disabled={loading}
                     autoComplete="current-password"
                     data-ocid="login.password.input"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     tabIndex={-1}
                   >
-                    {showPassword ? (
+                    {showPw ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
@@ -104,41 +115,38 @@ export default function UserLoginPage() {
                   </button>
                 </div>
               </div>
-
               {error && (
                 <Alert variant="destructive" data-ocid="login.error_state">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
               <Button
                 type="submit"
                 size="lg"
-                disabled={isLoading || !username.trim() || !password.trim()}
+                disabled={loading || !username.trim() || !password.trim()}
                 className="w-full bg-primary hover:bg-primary/90 shadow-cyber-glow"
                 data-ocid="login.submit_button"
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Signing In...
-                  </span>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing
+                    in...
+                  </>
                 ) : (
                   <>
-                    <Shield className="mr-2 h-5 w-5" /> Sign In
+                    <LogIn className="mr-2 h-4 w-4" /> Sign In
                   </>
                 )}
               </Button>
-
-              <p className="text-center text-sm text-muted-foreground pt-2">
+              <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
                   to="/register"
                   className="text-primary hover:underline"
                   data-ocid="login.register.link"
                 >
-                  Create one here
+                  Register here
                 </Link>
               </p>
             </form>

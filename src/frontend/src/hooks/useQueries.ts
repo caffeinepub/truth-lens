@@ -1,12 +1,11 @@
 import type { Principal } from "@dfinity/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { APIResponse, ScanResult, UserProfile } from "../backend";
+import type { PhishingScanResult, ScanResponse, UserProfile } from "../backend";
 import { useActor } from "./useActor";
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
-
-  const query = useQuery<UserProfile | null>({
+  return useQuery<UserProfile | null>({
     queryKey: ["currentUserProfile"],
     queryFn: async () => {
       if (!actor) throw new Error("Actor not available");
@@ -15,18 +14,25 @@ export function useGetCallerUserProfile() {
     enabled: !!actor && !actorFetching,
     retry: false,
   });
+}
 
-  return {
-    ...query,
-    isLoading: actorFetching || query.isLoading,
-    isFetched: !!actor && query.isFetched,
-  };
+export function useRegisterUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (profile: UserProfile) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.registerUser(profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
+    },
+  });
 }
 
 export function useSaveCallerUserProfile() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
       if (!actor) throw new Error("Actor not available");
@@ -38,10 +44,9 @@ export function useSaveCallerUserProfile() {
   });
 }
 
-export function useScanAnalysis() {
+export function useScanUrlOrText() {
   const { actor } = useActor();
-
-  return useMutation<APIResponse, Error, string>({
+  return useMutation<ScanResponse, Error, string>({
     mutationFn: async (input: string) => {
       if (!actor) throw new Error("Actor not available");
       return actor.scanUrlOrText(input);
@@ -49,40 +54,9 @@ export function useScanAnalysis() {
   });
 }
 
-export function useIsCallerAdmin() {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ["isCallerAdmin"],
-    queryFn: async () => {
-      if (!actor) throw new Error("Actor not available");
-      return actor.isCallerAdmin();
-    },
-    enabled: !!actor && !actorFetching,
-    retry: false,
-  });
-}
-
-export function useAdminLogin() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error("Actor not available");
-      return actor.adminLogin();
-    },
-    onSuccess: (data) => {
-      sessionStorage.setItem("adminSessionToken", data.sessionToken);
-      queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
-    },
-  });
-}
-
 export function useGetAllScanResults() {
   const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<ScanResult[]>({
+  return useQuery<PhishingScanResult[]>({
     queryKey: ["allScanResults"],
     queryFn: async () => {
       if (!actor) throw new Error("Actor not available");
@@ -92,32 +66,46 @@ export function useGetAllScanResults() {
   });
 }
 
-export function useAdminLogout() {
+export function useDeleteScanResult() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (index: bigint) => {
       if (!actor) throw new Error("Actor not available");
-      const token = sessionStorage.getItem("adminSessionToken") ?? "";
-      return actor.adminLogout(token);
+      return actor.deleteScanResult(index);
     },
     onSuccess: () => {
-      sessionStorage.removeItem("adminSessionToken");
-      queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["allScanResults"] });
+      queryClient.invalidateQueries({ queryKey: ["systemStats"] });
     },
   });
 }
 
-// Admin: User Management
+export function useUpdateScanResult() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      index,
+      verdict,
+      trustScore,
+    }: { index: bigint; verdict: string; trustScore: bigint }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateScanResult(index, verdict, trustScore);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allScanResults"] });
+    },
+  });
+}
+
 export function useGetAllUsers() {
   const { actor, isFetching: actorFetching } = useActor();
-
   return useQuery<Array<[Principal, UserProfile]>>({
     queryKey: ["allUsers"],
     queryFn: async () => {
       if (!actor) throw new Error("Actor not available");
-      return actor.listUsers();
+      return actor.getAllUsers();
     },
     enabled: !!actor && !actorFetching,
   });
@@ -126,7 +114,6 @@ export function useGetAllUsers() {
 export function useBanUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (user: Principal) => {
       if (!actor) throw new Error("Actor not available");
@@ -138,10 +125,9 @@ export function useBanUser() {
   });
 }
 
-export function useDeleteUser() {
+export function useRemoveUser() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (user: Principal) => {
       if (!actor) throw new Error("Actor not available");
@@ -149,30 +135,37 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["systemStats"] });
     },
   });
 }
 
-// Admin: Submission Moderation
-export function useDeleteSubmission() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (key: string) => {
+export function useGetSystemStats() {
+  const { actor, isFetching: actorFetching } = useActor();
+  return useQuery({
+    queryKey: ["systemStats"],
+    queryFn: async () => {
       if (!actor) throw new Error("Actor not available");
-      return actor.deleteScanResult(key);
+      return actor.getSystemStats();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["allScanResults"] });
-    },
+    enabled: !!actor && !actorFetching,
   });
 }
 
-// Admin: Site Configuration
+export function useGetAdminLog() {
+  const { actor, isFetching: actorFetching } = useActor();
+  return useQuery({
+    queryKey: ["adminLog"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.getAdminLog();
+    },
+    enabled: !!actor && !actorFetching,
+  });
+}
+
 export function useGetSiteConfig(key: string) {
   const { actor, isFetching: actorFetching } = useActor();
-
   return useQuery<string | null>({
     queryKey: ["siteConfig", key],
     queryFn: async () => {
@@ -183,10 +176,9 @@ export function useGetSiteConfig(key: string) {
   });
 }
 
-export function useSaveSiteConfig() {
+export function useSaveConfigValue() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       if (!actor) throw new Error("Actor not available");

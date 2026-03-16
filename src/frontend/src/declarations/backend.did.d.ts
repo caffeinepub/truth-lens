@@ -10,13 +10,25 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface APIResponse { 'status' : string, 'confidence' : bigint }
-export interface ScanResult {
-  'isSafe' : boolean,
-  'confidenceScore' : bigint,
+export interface AdminActionLog { 'action' : string, 'timestamp' : string }
+export interface AuditEntry {
+  'changeset' : string,
+  'userId' : Principal,
+  'timestamp' : string,
+}
+export interface PhishingScanResult {
+  'scanDate' : string,
+  'scannedBy' : Principal,
+  'trustScore' : bigint,
+  'verdict' : string,
   'urlOrText' : string,
 }
-export interface UserProfile { 'name' : string }
+export interface ScanResponse { 'trustScore' : bigint, 'verdict' : string }
+export interface UserProfile {
+  'username' : string,
+  'name' : string,
+  'role' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -48,22 +60,35 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'adminLogin' : ActorMethod<[], { 'sessionToken' : string }>,
-  'adminLogout' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'banUser' : ActorMethod<[Principal], undefined>,
-  'deleteScanResult' : ActorMethod<[string], undefined>,
-  'getAllScanResults' : ActorMethod<[], Array<ScanResult>>,
+  'deleteScanResult' : ActorMethod<[bigint], undefined>,
+  'getAdminLog' : ActorMethod<[], Array<AdminActionLog>>,
+  'getAllScanResults' : ActorMethod<[], Array<PhishingScanResult>>,
+  'getAllUsers' : ActorMethod<[], Array<[Principal, UserProfile]>>,
+  'getAuditLog' : ActorMethod<[], Array<AuditEntry>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getSystemStats' : ActorMethod<
+    [],
+    {
+      'safeCount' : bigint,
+      'suspiciousCount' : bigint,
+      'totalScans' : bigint,
+      'phishingCount' : bigint,
+      'totalUsers' : bigint,
+    }
+  >,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'listUsers' : ActorMethod<[], Array<[Principal, UserProfile]>>,
+  'isUserBanned' : ActorMethod<[Principal], boolean>,
   'readConfigValue' : ActorMethod<[string], [] | [string]>,
+  'registerUser' : ActorMethod<[UserProfile], undefined>,
   'removeUser' : ActorMethod<[Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveConfigValue' : ActorMethod<[string, string], undefined>,
-  'scanUrlOrText' : ActorMethod<[string], APIResponse>,
+  'scanUrlOrText' : ActorMethod<[string], ScanResponse>,
+  'updateScanResult' : ActorMethod<[bigint, string, bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

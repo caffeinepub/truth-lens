@@ -1,130 +1,106 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 
-type Feature = {
-  title: string;
-  description: string;
-  image: string;
-  borderColor: string;
-  bgColor: string;
-  glowColor: string;
-  cornerColor: string;
-  textColor: string;
-  textShadow: string;
-  descColor: string;
-  iconBg: string;
-  iconBorder: string;
-};
-
-const features: Feature[] = [
+const FEATURES = [
   {
-    title: "Real-time Detection",
+    icon: "/assets/generated/icon-scan-transparent.dim_128x128.png",
+    title: "URL Scanner",
     description:
-      "Instant analysis of URLs and content with AI-powered threat detection algorithms.",
-    image: "/assets/generated/feature-realtime-transparent.dim_128x128.png",
-    borderColor: "oklch(0.65 0.25 220 / 0.25)",
-    bgColor: "oklch(0.14 0.03 240 / 0.8)",
-    glowColor: "oklch(0.65 0.25 220 / 0.2)",
-    cornerColor:
-      "linear-gradient(225deg, oklch(0.65 0.25 220 / 0.12) 0%, transparent 60%)",
-    textColor: "oklch(0.65 0.25 220)",
-    textShadow: "0 0 10px oklch(0.65 0.25 220 / 0.5)",
-    descColor: "oklch(0.65 0.05 220)",
-    iconBg: "oklch(0.65 0.25 220 / 0.1)",
-    iconBorder: "oklch(0.65 0.25 220 / 0.2)",
+      "Multi-layered URL scanning to detect phishing links before they harm you.",
+    details: [
+      "Google Safe Browsing database",
+      "VirusTotal 70+ antivirus engines",
+      "PhishTank phishing repository",
+      "IP-based URL detection",
+    ],
   },
   {
-    title: "Deepfake Analysis",
+    icon: "/assets/generated/icon-shield-transparent.dim_128x128.png",
+    title: "Real-time Protection",
     description:
-      "Advanced detection of manipulated media and deepfake content to protect against misinformation.",
-    image: "/assets/generated/feature-deepfake-transparent.dim_128x128.png",
-    borderColor: "oklch(0.7 0.28 160 / 0.25)",
-    bgColor: "oklch(0.14 0.03 240 / 0.8)",
-    glowColor: "oklch(0.7 0.28 160 / 0.2)",
-    cornerColor:
-      "linear-gradient(225deg, oklch(0.7 0.28 160 / 0.12) 0%, transparent 60%)",
-    textColor: "oklch(0.7 0.28 160)",
-    textShadow: "0 0 10px oklch(0.7 0.28 160 / 0.5)",
-    descColor: "oklch(0.65 0.05 220)",
-    iconBg: "oklch(0.7 0.28 160 / 0.1)",
-    iconBorder: "oklch(0.7 0.28 160 / 0.2)",
+      "Instant threat analysis powered by AI and multiple security APIs.",
+    details: [
+      "Simultaneous multi-API scanning",
+      "Sub-second verdict delivery",
+      "Continuous database updates",
+      "Heuristic detection",
+    ],
   },
   {
-    title: "URL Phishing Scan",
+    icon: "/assets/generated/icon-shield-transparent.dim_128x128.png",
+    title: "Trust Score",
     description:
-      "Comprehensive scanning of suspicious links to identify phishing attempts and malicious websites.",
-    image: "/assets/generated/feature-url-scan-transparent.dim_128x128.png",
-    borderColor: "oklch(0.65 0.25 220 / 0.25)",
-    bgColor: "oklch(0.14 0.03 240 / 0.8)",
-    glowColor: "oklch(0.65 0.25 220 / 0.2)",
-    cornerColor:
-      "linear-gradient(225deg, oklch(0.65 0.25 220 / 0.12) 0%, transparent 60%)",
-    textColor: "oklch(0.65 0.25 220)",
-    textShadow: "0 0 10px oklch(0.65 0.25 220 / 0.5)",
-    descColor: "oklch(0.65 0.05 220)",
-    iconBg: "oklch(0.65 0.25 220 / 0.1)",
-    iconBorder: "oklch(0.65 0.25 220 / 0.2)",
+      "A clear 0-100 trust score so you know exactly how safe a URL is.",
+    details: [
+      "Transparent scoring algorithm",
+      "Color-coded risk levels",
+      "Breakdown per security service",
+      "Confidence percentage per source",
+    ],
+  },
+  {
+    icon: "/assets/generated/icon-scan-transparent.dim_128x128.png",
+    title: "Multi-API Analysis",
+    description:
+      "Cross-validation from Google Safe Browsing, VirusTotal, and PhishTank.",
+    details: [
+      "3-source consensus verdict",
+      "Reduces false positives",
+      "Enterprise-grade intelligence",
+      "Audit-ready scan history",
+    ],
   },
 ];
 
 export default function FeaturesGrid() {
+  const [expanded, setExpanded] = useState<number | null>(null);
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {features.map((feature) => (
-        <Card
-          key={feature.title}
-          className="group relative overflow-hidden transition-all duration-300 backdrop-blur-sm"
-          style={{
-            background: feature.bgColor,
-            border: `1px solid ${feature.borderColor}`,
-            boxShadow: `0 0 20px ${feature.glowColor}, inset 0 1px 0 oklch(1 0 0 / 0.04)`,
-          }}
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {FEATURES.map((f, i) => (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: card click is supplementary, button inside handles keyboard
+        <div
+          key={f.title}
+          className="group rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-primary/50 hover:shadow-cyber-glow cursor-pointer"
+          onClick={() => setExpanded(expanded === i ? null : i)}
+          data-ocid={`features.card.${i + 1}`}
         >
-          {/* Corner accent */}
-          <div
-            className="absolute top-0 right-0 w-16 h-16 pointer-events-none"
-            style={{ background: feature.cornerColor }}
-          />
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <div
-                className="p-3 rounded-xl"
-                style={{
-                  background: feature.iconBg,
-                  border: `1px solid ${feature.iconBorder}`,
-                }}
-              >
-                <img
-                  src={feature.image}
-                  alt={feature.title}
-                  className="h-16 w-16 group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-            </div>
-            <CardTitle
-              className="text-center text-xl"
-              style={{
-                color: feature.textColor,
-                textShadow: feature.textShadow,
-              }}
+          <div className="relative mb-4 w-16 h-16 mx-auto">
+            <img
+              src={f.icon}
+              alt={f.title}
+              className="w-16 h-16 object-contain drop-shadow-[0_0_8px_oklch(var(--primary)/0.6)] transition-transform group-hover:scale-110"
+            />
+          </div>
+          <h3 className="font-semibold text-center mb-2">{f.title}</h3>
+          <p className="text-sm text-muted-foreground text-center">
+            {f.description}
+          </p>
+          <div className="flex justify-center mt-3">
+            <button
+              type="button"
+              className="flex items-center gap-1 text-xs text-primary hover:text-accent transition-colors"
+              data-ocid={`features.toggle.${i + 1}`}
             >
-              {feature.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription
-              className="text-center"
-              style={{ color: feature.descColor }}
-            >
-              {feature.description}
-            </CardDescription>
-          </CardContent>
-        </Card>
+              {expanded === i ? "Hide details" : "Show details"}
+              <ChevronDown
+                className={`h-3 w-3 transition-transform duration-200 ${expanded === i ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
+          {expanded === i && (
+            <ul className="mt-3 space-y-1 border-t border-border/40 pt-3">
+              {f.details.map((d) => (
+                <li
+                  key={d}
+                  className="flex items-start gap-2 text-xs text-muted-foreground"
+                >
+                  <span className="text-accent mt-0.5">&#9656;</span>
+                  {d}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ))}
     </div>
   );

@@ -7,87 +7,89 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Fish, Globe, RotateCcw, Scan } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { APIResponse } from "../backend";
+import type { ScanResponse } from "../backend";
 import TrustScoreDisplay from "../components/TrustScoreDisplay";
-
-interface ScanData {
-  result: APIResponse;
-  input: string;
-}
 
 export default function ResultsPage() {
   const navigate = useNavigate();
-  const [scanData, setScanData] = useState<ScanData | null>(null);
+  const [scanData, setScanData] = useState<{
+    result: ScanResponse;
+    input: string;
+  } | null>(null);
 
   useEffect(() => {
-    const storedData = sessionStorage.getItem("lastScanResult");
-    if (storedData) {
+    const raw = sessionStorage.getItem("lastScanResult");
+    if (raw) {
       try {
-        const parsed = JSON.parse(storedData);
+        const parsed = JSON.parse(raw);
+        parsed.result.trustScore = Number(parsed.result.trustScore);
         setScanData(parsed);
-      } catch (error) {
-        console.error("Failed to parse scan result:", error);
+      } catch {
+        /* ignore */
       }
     }
   }, []);
 
   if (!scanData) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto text-center">
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">No Results Available</h2>
           <p className="text-muted-foreground mb-6">
-            Please perform a scan first to see results.
+            Please perform a scan first.
           </p>
-          <Button onClick={() => navigate({ to: "/scan" })}>
-            Go to Scan Dashboard
-          </Button>
+          <Link to="/scan">
+            <Button
+              className="bg-primary hover:bg-primary/90 shadow-cyber-glow"
+              data-ocid="results.scan.button"
+            >
+              Go to Scanner
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
   const { result, input } = scanData;
-  const isSafe = result.status === "Safe";
-  const confidence = Number(result.confidence);
+  const trustScore = Number(result.trustScore);
+  const verdict = result.verdict;
+  const isSafe = verdict === "Safe";
+  const isSuspicious = verdict === "Suspicious";
 
-  // Determine if input looks like a URL
-  const isUrl =
-    input.startsWith("http://") ||
-    input.startsWith("https://") ||
-    input.includes(".");
-
-  // Build per-API source results derived from the aggregated verdict
   const apiSources = [
     {
       name: "Google Safe Browsing",
-      icon: <Globe className="h-5 w-5" />,
       isSafe,
       detail: isSafe
-        ? "No threats found in Google Safe Browsing database. URL is not listed as phishing, malware, or unwanted software."
-        : "URL matched entries in Google Safe Browsing threat database. Potential phishing or malware risk detected.",
-      confidence: Math.min(100, confidence + (isSafe ? 2 : -2)),
+        ? "No threats found in Google Safe Browsing database."
+        : "URL matched entries in Google Safe Browsing threat database.",
+      confidence: Math.min(
+        100,
+        Math.max(0, trustScore + (isSafe ? 2 : isSuspicious ? -5 : -10)),
+      ),
     },
     {
       name: "VirusTotal",
-      icon: <Scan className="h-5 w-5" />,
       isSafe,
       detail: isSafe
-        ? "Scanned by 70+ antivirus engines — no malicious indicators detected. Domain reputation is clean."
-        : "Multiple antivirus engines flagged this URL as suspicious or malicious. High-risk content detected.",
-      confidence: Math.min(100, confidence + (isSafe ? 1 : -1)),
+        ? "Scanned by 70+ antivirus engines - no malicious indicators."
+        : "Multiple antivirus engines flagged this URL as suspicious.",
+      confidence: Math.min(
+        100,
+        Math.max(0, trustScore + (isSafe ? 1 : isSuspicious ? -3 : -8)),
+      ),
     },
     {
       name: "PhishTank",
-      icon: <Fish className="h-5 w-5" />,
       isSafe,
       detail: isSafe
-        ? "Not found in PhishTank phishing database. No community-verified phishing reports for this URL."
-        : "URL found in PhishTank phishing database. Community-verified phishing attempt identified.",
-      confidence: Math.min(100, confidence),
+        ? "Not found in PhishTank phishing database."
+        : "URL found in PhishTank phishing database.",
+      confidence: Math.min(100, Math.max(0, trustScore)),
     },
   ];
 
@@ -98,28 +100,23 @@ export default function ResultsPage() {
           variant="ghost"
           onClick={() => navigate({ to: "/scan" })}
           className="mb-6"
+          data-ocid="results.back.button"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Scan
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Scanner
         </Button>
-
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 cyber-glow">
-            Scan Results
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Multi-API analysis complete — 3 security services consulted
+          <h1 className="text-4xl font-bold cyber-glow mb-2">Scan Results</h1>
+          <p className="text-muted-foreground">
+            Multi-API analysis complete - 3 security services consulted
           </p>
         </div>
-
         <div className="space-y-6">
-          {/* Analyzed Content */}
-          <Card className="cyber-border shadow-cyber-glow bg-card/50 backdrop-blur-sm">
+          <Card className="cyber-border bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Analyzed Content</CardTitle>
                 <Badge variant="outline" className="text-xs">
-                  {isUrl ? "URL" : "Text"}
+                  {input.startsWith("http") ? "URL" : "Text"}
                 </Badge>
               </div>
               <CardDescription>
@@ -132,23 +129,21 @@ export default function ResultsPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Trust Score with API Breakdown */}
           <TrustScoreDisplay
-            isSafe={isSafe}
-            confidence={confidence}
+            verdict={verdict}
+            trustScore={trustScore}
             apiSources={apiSources}
           />
-
           <div className="flex justify-center">
-            <Button
-              size="lg"
-              onClick={() => navigate({ to: "/scan" })}
-              className="bg-primary hover:bg-primary/90 shadow-cyber-glow"
-            >
-              <RotateCcw className="mr-2 h-5 w-5" />
-              Scan Another
-            </Button>
+            <Link to="/scan">
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 shadow-cyber-glow"
+                data-ocid="results.scan_again.button"
+              >
+                <RotateCcw className="mr-2 h-5 w-5" /> Scan Another
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

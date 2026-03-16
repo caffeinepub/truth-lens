@@ -24,15 +24,30 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const ScanResult = IDL.Record({
-  'isSafe' : IDL.Bool,
-  'confidenceScore' : IDL.Nat,
+export const AdminActionLog = IDL.Record({
+  'action' : IDL.Text,
+  'timestamp' : IDL.Text,
+});
+export const PhishingScanResult = IDL.Record({
+  'scanDate' : IDL.Text,
+  'scannedBy' : IDL.Principal,
+  'trustScore' : IDL.Nat,
+  'verdict' : IDL.Text,
   'urlOrText' : IDL.Text,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
-export const APIResponse = IDL.Record({
-  'status' : IDL.Text,
-  'confidence' : IDL.Nat,
+export const UserProfile = IDL.Record({
+  'username' : IDL.Text,
+  'name' : IDL.Text,
+  'role' : IDL.Text,
+});
+export const AuditEntry = IDL.Record({
+  'changeset' : IDL.Text,
+  'userId' : IDL.Principal,
+  'timestamp' : IDL.Text,
+});
+export const ScanResponse = IDL.Record({
+  'trustScore' : IDL.Nat,
+  'verdict' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -63,30 +78,46 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'adminLogin' : IDL.Func([], [IDL.Record({ 'sessionToken' : IDL.Text })], []),
-  'adminLogout' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'banUser' : IDL.Func([IDL.Principal], [], []),
-  'deleteScanResult' : IDL.Func([IDL.Text], [], []),
-  'getAllScanResults' : IDL.Func([], [IDL.Vec(ScanResult)], ['query']),
+  'deleteScanResult' : IDL.Func([IDL.Nat], [], []),
+  'getAdminLog' : IDL.Func([], [IDL.Vec(AdminActionLog)], ['query']),
+  'getAllScanResults' : IDL.Func([], [IDL.Vec(PhishingScanResult)], ['query']),
+  'getAllUsers' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+      ['query'],
+    ),
+  'getAuditLog' : IDL.Func([], [IDL.Vec(AuditEntry)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getSystemStats' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'safeCount' : IDL.Nat,
+          'suspiciousCount' : IDL.Nat,
+          'totalScans' : IDL.Nat,
+          'phishingCount' : IDL.Nat,
+          'totalUsers' : IDL.Nat,
+        }),
+      ],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'listUsers' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
-      ['query'],
-    ),
+  'isUserBanned' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'readConfigValue' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
+  'registerUser' : IDL.Func([UserProfile], [], []),
   'removeUser' : IDL.Func([IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveConfigValue' : IDL.Func([IDL.Text, IDL.Text], [], []),
-  'scanUrlOrText' : IDL.Func([IDL.Text], [APIResponse], []),
+  'scanUrlOrText' : IDL.Func([IDL.Text], [ScanResponse], []),
+  'updateScanResult' : IDL.Func([IDL.Nat, IDL.Text, IDL.Nat], [], []),
 });
 
 export const idlInitArgs = [];
@@ -108,15 +139,30 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const ScanResult = IDL.Record({
-    'isSafe' : IDL.Bool,
-    'confidenceScore' : IDL.Nat,
+  const AdminActionLog = IDL.Record({
+    'action' : IDL.Text,
+    'timestamp' : IDL.Text,
+  });
+  const PhishingScanResult = IDL.Record({
+    'scanDate' : IDL.Text,
+    'scannedBy' : IDL.Principal,
+    'trustScore' : IDL.Nat,
+    'verdict' : IDL.Text,
     'urlOrText' : IDL.Text,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
-  const APIResponse = IDL.Record({
-    'status' : IDL.Text,
-    'confidence' : IDL.Nat,
+  const UserProfile = IDL.Record({
+    'username' : IDL.Text,
+    'name' : IDL.Text,
+    'role' : IDL.Text,
+  });
+  const AuditEntry = IDL.Record({
+    'changeset' : IDL.Text,
+    'userId' : IDL.Principal,
+    'timestamp' : IDL.Text,
+  });
+  const ScanResponse = IDL.Record({
+    'trustScore' : IDL.Nat,
+    'verdict' : IDL.Text,
   });
   
   return IDL.Service({
@@ -147,34 +193,50 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'adminLogin' : IDL.Func(
-        [],
-        [IDL.Record({ 'sessionToken' : IDL.Text })],
-        [],
-      ),
-    'adminLogout' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'banUser' : IDL.Func([IDL.Principal], [], []),
-    'deleteScanResult' : IDL.Func([IDL.Text], [], []),
-    'getAllScanResults' : IDL.Func([], [IDL.Vec(ScanResult)], ['query']),
+    'deleteScanResult' : IDL.Func([IDL.Nat], [], []),
+    'getAdminLog' : IDL.Func([], [IDL.Vec(AdminActionLog)], ['query']),
+    'getAllScanResults' : IDL.Func(
+        [],
+        [IDL.Vec(PhishingScanResult)],
+        ['query'],
+      ),
+    'getAllUsers' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+        ['query'],
+      ),
+    'getAuditLog' : IDL.Func([], [IDL.Vec(AuditEntry)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getSystemStats' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'safeCount' : IDL.Nat,
+            'suspiciousCount' : IDL.Nat,
+            'totalScans' : IDL.Nat,
+            'phishingCount' : IDL.Nat,
+            'totalUsers' : IDL.Nat,
+          }),
+        ],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'listUsers' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
-        ['query'],
-      ),
+    'isUserBanned' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'readConfigValue' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
+    'registerUser' : IDL.Func([UserProfile], [], []),
     'removeUser' : IDL.Func([IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveConfigValue' : IDL.Func([IDL.Text, IDL.Text], [], []),
-    'scanUrlOrText' : IDL.Func([IDL.Text], [APIResponse], []),
+    'scanUrlOrText' : IDL.Func([IDL.Text], [ScanResponse], []),
+    'updateScanResult' : IDL.Func([IDL.Nat, IDL.Text, IDL.Nat], [], []),
   });
 };
 

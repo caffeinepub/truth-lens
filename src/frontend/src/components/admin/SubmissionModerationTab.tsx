@@ -1,19 +1,14 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,364 +17,295 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Download,
-  FileSearch,
-  ShieldAlert,
-  ShieldCheck,
-  Trash2,
-} from "lucide-react";
+import { Download, FileSearch, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { ScanResult } from "../../backend";
 import {
-  useDeleteSubmission,
+  useDeleteScanResult,
   useGetAllScanResults,
+  useUpdateScanResult,
 } from "../../hooks/useQueries";
 
-type Filter = "all" | "safe" | "unsafe";
+type Filter = "All" | "Safe" | "Suspicious" | "Phishing";
+
+function VerdictBadge({ verdict }: { verdict: string }) {
+  if (verdict === "Safe")
+    return (
+      <Badge className="bg-accent/20 text-accent border-accent/40">Safe</Badge>
+    );
+  if (verdict === "Suspicious")
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/40">
+        Suspicious
+      </Badge>
+    );
+  return (
+    <Badge className="bg-destructive/20 text-destructive border-destructive/40">
+      Phishing
+    </Badge>
+  );
+}
 
 export default function SubmissionModerationTab() {
-  const { data: submissions, isLoading } = useGetAllScanResults();
-  const { mutate: deleteSubmission, isPending: isDeleting } =
-    useDeleteSubmission();
+  const [filter, setFilter] = useState<Filter>("All");
+  const [selected, setSelected] = useState<number[]>([]);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [editVerdict, setEditVerdict] = useState("");
+  const [editScore, setEditScore] = useState("");
 
-  const [deletingKey, setDeletingKey] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const { data: scans, isLoading, error } = useGetAllScanResults();
+  const deleteScan = useDeleteScanResult();
+  const updateScan = useUpdateScanResult();
 
-  const filtered = (submissions || []).filter((s) => {
-    if (filter === "safe") return s.isSafe;
-    if (filter === "unsafe") return !s.isSafe;
-    return true;
-  });
+  const filtered = (scans ?? []).filter(
+    (s) => filter === "All" || s.verdict === filter,
+  );
 
-  const allSelected =
-    filtered.length > 0 && filtered.every((s) => selectedKeys.has(s.urlOrText));
-  const someSelected = selectedKeys.size > 0;
-
-  const toggleAll = () => {
-    if (allSelected) {
-      setSelectedKeys(new Set());
-    } else {
-      setSelectedKeys(new Set(filtered.map((s) => s.urlOrText)));
-    }
-  };
-
-  const toggleKey = (key: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const handleDelete = (key: string) => {
-    setDeletingKey(key);
-    deleteSubmission(key, {
-      onSuccess: () => {
-        toast.success("Submission deleted");
-        setDeletingKey(null);
-        setPendingDelete(null);
-        setSelectedKeys((prev) => {
-          const n = new Set(prev);
-          n.delete(key);
-          return n;
-        });
-      },
-      onError: (err: Error) => {
-        toast.error(err.message || "Failed to delete submission");
-        setDeletingKey(null);
-        setPendingDelete(null);
-      },
-    });
-  };
-
-  const handleBulkDelete = async () => {
-    setIsBulkDeleting(true);
-    const keys = Array.from(selectedKeys);
-    let successCount = 0;
-    for (const key of keys) {
-      await new Promise<void>((resolve) => {
-        deleteSubmission(key, {
-          onSuccess: () => {
-            successCount++;
-            resolve();
-          },
-          onError: () => resolve(),
-        });
-      });
-    }
-    setSelectedKeys(new Set());
-    setBulkDeleteOpen(false);
-    setIsBulkDeleting(false);
-    toast.success(
-      `Deleted ${successCount} submission${successCount !== 1 ? "s" : ""}`,
+  const toggleSelect = (idx: number) =>
+    setSelected((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx],
     );
-  };
 
-  const handleExportCSV = () => {
-    if (!submissions || submissions.length === 0) {
-      toast.error("No data to export");
-      return;
-    }
-    const rows = [
-      ["#", "URL/Text", "Verdict", "Confidence"],
-      ...submissions.map((s: ScanResult, i: number) => [
-        String(i + 1),
-        `"${s.urlOrText.replace(/"/g, '""')}"`,
-        s.isSafe ? "Safe" : "Unsafe",
-        String(Number(s.confidenceScore)),
-      ]),
-    ];
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const url = URL.createObjectURL(
-      new Blob([csvContent], { type: "text/csv" }),
-    );
+  const exportCsv = () => {
+    const rows = ["URL,Verdict,Trust Score,Scan Date"];
+    for (const s of scans ?? [])
+      rows.push(`"${s.urlOrText}",${s.verdict},${s.trustScore},${s.scanDate}`);
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "truth-lens-scan-history.csv";
+    a.download = "scan-history.csv";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exported successfully");
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {["sk1", "sk2", "sk3", "sk4", "sk5"].map((id) => (
-          <Skeleton key={id} className="h-12 w-full" />
-        ))}
-      </div>
-    );
-  }
+  const handleBulkDelete = () => {
+    if (!confirm(`Delete ${selected.length} selected scans?`)) return;
+    Promise.all(selected.map((i) => deleteScan.mutateAsync(BigInt(i))))
+      .then(() => {
+        toast.success(`Deleted ${selected.length} scans`);
+        setSelected([]);
+      })
+      .catch(() => toast.error("Some deletions failed"));
+  };
 
-  if (!submissions || submissions.length === 0) {
+  const handleSaveEdit = (idx: number) => {
+    updateScan.mutate(
+      {
+        index: BigInt(idx),
+        verdict: editVerdict,
+        trustScore: BigInt(editScore || "0"),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Scan result updated");
+          setEditIdx(null);
+        },
+        onError: () => toast.error("Update failed"),
+      },
+    );
+  };
+
+  if (isLoading)
     return (
-      <div className="text-center py-16" data-ocid="submissions.empty_state">
-        <FileSearch className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">No scan submissions found.</p>
+      <div
+        className="flex items-center justify-center py-12"
+        data-ocid="scans.loading_state"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
+  if (error)
+    return (
+      <Alert variant="destructive" data-ocid="scans.error_state">
+        <AlertDescription>Failed to load scan results.</AlertDescription>
+      </Alert>
+    );
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Filter toggles */}
-        <div className="flex items-center gap-1 rounded-md border border-border/50 p-1 bg-card/30">
-          {(["all", "safe", "unsafe"] as Filter[]).map((f) => (
-            <button
-              type="button"
+        <div className="flex gap-1" data-ocid="scans.filter.tab">
+          {(["All", "Safe", "Suspicious", "Phishing"] as Filter[]).map((f) => (
+            <Button
               key={f}
-              onClick={() => {
-                setFilter(f);
-                setSelectedKeys(new Set());
-              }}
-              className={`px-3 py-1 rounded text-xs font-mono uppercase tracking-widest transition-colors ${
-                filter === f
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              data-ocid={`submissions.${f}.toggle`}
+              size="sm"
+              variant={filter === f ? "default" : "outline"}
+              onClick={() => setFilter(f)}
+              className={filter === f ? "bg-primary" : "border-border/50"}
             >
               {f}
-            </button>
+            </Button>
           ))}
         </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          {someSelected && (
-            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-destructive/40 hover:bg-destructive/10 text-destructive text-xs font-mono"
-                  data-ocid="submissions.delete_button"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete Selected ({selectedKeys.size})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-card border-border">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Bulk Delete</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Delete {selectedKeys.size} selected submission
-                    {selectedKeys.size !== 1 ? "s" : ""}? This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel data-ocid="submissions.bulk_delete.cancel_button">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90"
-                    onClick={handleBulkDelete}
-                    disabled={isBulkDeleting}
-                    data-ocid="submissions.bulk_delete.confirm_button"
-                  >
-                    {isBulkDeleting ? "Deleting..." : "Delete All"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+        <div className="ml-auto flex gap-2">
+          {selected.length > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deleteScan.isPending}
+              data-ocid="scans.delete_button"
+            >
+              <Trash2 className="h-3 w-3 mr-1" /> Delete {selected.length}
+            </Button>
           )}
-
           <Button
-            variant="outline"
             size="sm"
-            className="border-accent/40 hover:bg-accent/10 text-accent text-xs font-mono"
-            onClick={handleExportCSV}
-            data-ocid="submissions.upload_button"
+            variant="outline"
+            onClick={exportCsv}
+            className="border-primary/30 hover:border-primary"
+            data-ocid="scans.export.button"
           >
-            <Download className="h-3 w-3 mr-1" />
-            Export CSV
+            <Download className="h-3 w-3 mr-1" /> Export CSV
           </Button>
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground font-mono">
-        {filtered.length} submission{filtered.length !== 1 ? "s" : ""}
-        {filter !== "all" ? ` (${filter})` : ""}
-      </p>
-
       {filtered.length === 0 ? (
-        <div className="text-center py-12" data-ocid="submissions.empty_state">
-          <FileSearch className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">
-            No {filter} submissions found.
-          </p>
+        <div
+          className="text-center py-12 text-muted-foreground"
+          data-ocid="scans.empty_state"
+        >
+          <FileSearch className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p>No scan results found.</p>
         </div>
       ) : (
-        <div className="rounded-md border border-border/50 overflow-hidden">
+        <div
+          className="rounded-lg border border-border/50 overflow-hidden"
+          data-ocid="scans.table"
+        >
           <Table>
             <TableHeader>
-              <TableRow className="bg-card/50 hover:bg-card/50">
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={toggleAll}
-                    aria-label="Select all"
-                    data-ocid="submissions.checkbox"
-                  />
-                </TableHead>
-                <TableHead className="w-[38%]">Content</TableHead>
+              <TableRow className="border-border/50 bg-muted/20">
+                <TableHead className="w-10" />
+                <TableHead>#</TableHead>
+                <TableHead>URL / Text</TableHead>
                 <TableHead>Verdict</TableHead>
-                <TableHead className="w-[20%]">Confidence</TableHead>
+                <TableHead>Trust Score</TableHead>
+                <TableHead>Scan Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((submission: ScanResult, idx: number) => {
-                const confidence = Number(submission.confidenceScore);
-                const key = submission.urlOrText;
-                const isCurrentlyDeleting = deletingKey === key;
-
-                return (
-                  <TableRow
-                    key={key}
-                    className="hover:bg-card/30"
-                    data-ocid={`submissions.item.${idx + 1}`}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedKeys.has(key)}
-                        onCheckedChange={() => toggleKey(key)}
-                        aria-label="Select row"
-                        data-ocid={`submissions.checkbox.${idx + 1}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs text-muted-foreground break-all line-clamp-2">
-                        {submission.urlOrText.length > 80
-                          ? `${submission.urlOrText.slice(0, 80)}...`
-                          : submission.urlOrText}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {submission.isSafe ? (
-                        <Badge className="bg-accent/20 text-accent border-accent/40 gap-1">
-                          <ShieldCheck className="h-3 w-3" /> Safe
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="gap-1">
-                          <ShieldAlert className="h-3 w-3" /> Unsafe
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          {confidence}%
-                        </span>
-                        <Progress value={confidence} className="h-1.5" />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <AlertDialog
-                        open={pendingDelete === key}
-                        onOpenChange={(open) => {
-                          if (!open) setPendingDelete(null);
-                        }}
+              {filtered.map((scan, idx) => (
+                <TableRow
+                  key={`${scan.urlOrText}-${idx}`}
+                  className="border-border/30 hover:bg-muted/10"
+                  data-ocid={`scans.row.${idx + 1}`}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={selected.includes(idx)}
+                      onCheckedChange={() => toggleSelect(idx)}
+                      data-ocid={`scans.checkbox.${idx + 1}`}
+                    />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate font-mono text-xs">
+                    {scan.urlOrText}
+                  </TableCell>
+                  <TableCell>
+                    {editIdx === idx ? (
+                      <Select
+                        value={editVerdict}
+                        onValueChange={setEditVerdict}
                       >
-                        <AlertDialogTrigger asChild>
+                        <SelectTrigger
+                          className="h-7 w-28"
+                          data-ocid={`scans.verdict.select.${idx + 1}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Safe">Safe</SelectItem>
+                          <SelectItem value="Suspicious">Suspicious</SelectItem>
+                          <SelectItem value="Phishing">Phishing</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <VerdictBadge verdict={scan.verdict} />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editIdx === idx ? (
+                      <input
+                        type="number"
+                        value={editScore}
+                        onChange={(e) => setEditScore(e.target.value)}
+                        className="w-16 h-7 px-2 text-sm rounded border border-border bg-background"
+                        min={0}
+                        max={100}
+                      />
+                    ) : (
+                      <span className="font-mono">
+                        {Number(scan.trustScore)}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {scan.scanDate}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {editIdx === idx ? (
+                        <>
                           <Button
-                            variant="outline"
                             size="sm"
-                            className="border-destructive/40 hover:bg-destructive/10 hover:text-destructive text-destructive"
-                            onClick={() => setPendingDelete(key)}
-                            disabled={isDeleting}
-                            data-ocid={`submissions.delete_button.${idx + 1}`}
+                            className="bg-accent hover:bg-accent/90 h-7 px-2"
+                            onClick={() => handleSaveEdit(idx)}
+                            disabled={updateScan.isPending}
+                            data-ocid={`scans.save.button.${idx + 1}`}
                           >
-                            {isCurrentlyDeleting ? (
-                              <span className="text-xs">Deleting...</span>
-                            ) : (
-                              <>
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Delete
-                              </>
-                            )}
+                            Save
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-card border-border">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete Submission
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Delete this scan submission? This action cannot be
-                              undone.
-                              <div className="mt-2 p-2 bg-muted/30 rounded text-xs font-mono break-all">
-                                {submission.urlOrText.slice(0, 100)}
-                                {submission.urlOrText.length > 100 ? "..." : ""}
-                              </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel data-ocid="submissions.delete.cancel_button">
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => handleDelete(key)}
-                              data-ocid="submissions.delete.confirm_button"
-                            >
-                              Delete Submission
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => setEditIdx(null)}
+                            data-ocid={`scans.cancel.button.${idx + 1}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 hover:text-primary"
+                            onClick={() => {
+                              setEditIdx(idx);
+                              setEditVerdict(scan.verdict);
+                              setEditScore(String(scan.trustScore));
+                            }}
+                            data-ocid={`scans.edit_button.${idx + 1}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 hover:text-destructive"
+                            onClick={() => {
+                              if (confirm("Delete this scan result?"))
+                                deleteScan.mutate(BigInt(idx), {
+                                  onSuccess: () => toast.success("Deleted"),
+                                  onError: () => toast.error("Failed"),
+                                });
+                            }}
+                            data-ocid={`scans.delete_button.${idx + 1}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>

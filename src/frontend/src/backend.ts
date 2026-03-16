@@ -89,24 +89,37 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface ScanResult {
-    isSafe: boolean;
-    confidenceScore: bigint;
+export interface ScanResponse {
+    trustScore: bigint;
+    verdict: string;
+}
+export interface PhishingScanResult {
+    scanDate: string;
+    scannedBy: Principal;
+    trustScore: bigint;
+    verdict: string;
     urlOrText: string;
 }
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
-export interface APIResponse {
-    status: string;
-    confidence: bigint;
+export interface AuditEntry {
+    changeset: string;
+    userId: Principal;
+    timestamp: string;
 }
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
 }
+export interface AdminActionLog {
+    action: string;
+    timestamp: string;
+}
 export interface UserProfile {
+    username: string;
     name: string;
+    role: string;
 }
 export interface _CaffeineStorageRefillResult {
     success?: boolean;
@@ -125,24 +138,32 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    adminLogin(): Promise<{
-        sessionToken: string;
-    }>;
-    adminLogout(sessionToken: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     banUser(user: Principal): Promise<void>;
-    deleteScanResult(key: string): Promise<void>;
-    getAllScanResults(): Promise<Array<ScanResult>>;
+    deleteScanResult(index: bigint): Promise<void>;
+    getAdminLog(): Promise<Array<AdminActionLog>>;
+    getAllScanResults(): Promise<Array<PhishingScanResult>>;
+    getAllUsers(): Promise<Array<[Principal, UserProfile]>>;
+    getAuditLog(): Promise<Array<AuditEntry>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getSystemStats(): Promise<{
+        safeCount: bigint;
+        suspiciousCount: bigint;
+        totalScans: bigint;
+        phishingCount: bigint;
+        totalUsers: bigint;
+    }>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
-    listUsers(): Promise<Array<[Principal, UserProfile]>>;
+    isUserBanned(user: Principal): Promise<boolean>;
     readConfigValue(key: string): Promise<string | null>;
+    registerUser(profile: UserProfile): Promise<void>;
     removeUser(user: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveConfigValue(key: string, value: string): Promise<void>;
-    scanUrlOrText(input: string): Promise<APIResponse>;
+    scanUrlOrText(urlOrText: string): Promise<ScanResponse>;
+    updateScanResult(index: bigint, verdict: string, trustScore: bigint): Promise<void>;
 }
 import type { UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -245,36 +266,6 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async adminLogin(): Promise<{
-        sessionToken: string;
-    }> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.adminLogin();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.adminLogin();
-            return result;
-        }
-    }
-    async adminLogout(arg0: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.adminLogout(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.adminLogout(arg0);
-            return result;
-        }
-    }
     async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
         if (this.processError) {
             try {
@@ -303,7 +294,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async deleteScanResult(arg0: string): Promise<void> {
+    async deleteScanResult(arg0: bigint): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.deleteScanResult(arg0);
@@ -317,7 +308,21 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getAllScanResults(): Promise<Array<ScanResult>> {
+    async getAdminLog(): Promise<Array<AdminActionLog>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminLog();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminLog();
+            return result;
+        }
+    }
+    async getAllScanResults(): Promise<Array<PhishingScanResult>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllScanResults();
@@ -328,6 +333,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAllScanResults();
+            return result;
+        }
+    }
+    async getAllUsers(): Promise<Array<[Principal, UserProfile]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllUsers();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllUsers();
+            return result;
+        }
+    }
+    async getAuditLog(): Promise<Array<AuditEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAuditLog();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAuditLog();
             return result;
         }
     }
@@ -359,6 +392,26 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n11(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getSystemStats(): Promise<{
+        safeCount: bigint;
+        suspiciousCount: bigint;
+        totalScans: bigint;
+        phishingCount: bigint;
+        totalUsers: bigint;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSystemStats();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSystemStats();
+            return result;
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -387,17 +440,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async listUsers(): Promise<Array<[Principal, UserProfile]>> {
+    async isUserBanned(arg0: Principal): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.listUsers();
+                const result = await this.actor.isUserBanned(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.listUsers();
+            const result = await this.actor.isUserBanned(arg0);
             return result;
         }
     }
@@ -413,6 +466,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.readConfigValue(arg0);
             return from_candid_opt_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async registerUser(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.registerUser(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.registerUser(arg0);
+            return result;
         }
     }
     async removeUser(arg0: Principal): Promise<void> {
@@ -457,7 +524,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async scanUrlOrText(arg0: string): Promise<APIResponse> {
+    async scanUrlOrText(arg0: string): Promise<ScanResponse> {
         if (this.processError) {
             try {
                 const result = await this.actor.scanUrlOrText(arg0);
@@ -468,6 +535,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.scanUrlOrText(arg0);
+            return result;
+        }
+    }
+    async updateScanResult(arg0: bigint, arg1: string, arg2: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateScanResult(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateScanResult(arg0, arg1, arg2);
             return result;
         }
     }

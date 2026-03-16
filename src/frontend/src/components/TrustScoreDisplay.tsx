@@ -1,229 +1,169 @@
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  AlertTriangle,
-  CheckCircle2,
   Fish,
   Globe,
   Scan,
-  Shield,
-  ShieldAlert,
-  XCircle,
+  ShieldCheck,
+  ShieldX,
+  TriangleAlert,
 } from "lucide-react";
 
-interface APISourceResult {
+interface ApiSource {
   name: string;
-  icon: React.ReactNode;
   isSafe: boolean;
   detail: string;
   confidence: number;
 }
-
-interface TrustScoreDisplayProps {
-  isSafe: boolean;
-  confidence: number;
-  apiSources?: APISourceResult[];
+interface Props {
+  verdict: string;
+  trustScore: number;
+  apiSources: ApiSource[];
 }
 
-function FieldLabel({
-  children,
-  className,
-}: { children: React.ReactNode; className?: string }) {
-  return <span className={className}>{children}</span>;
-}
-
-function APISourceCard({ source }: { source: APISourceResult }) {
-  const statusColor = source.isSafe ? "text-accent" : "text-destructive";
-  const statusBg = source.isSafe ? "bg-accent/10" : "bg-destructive/10";
-  const statusBorder = source.isSafe
-    ? "border-accent/20"
-    : "border-destructive/20";
-
+function VerdictBadge({ verdict }: { verdict: string }) {
+  if (verdict === "Safe")
+    return (
+      <Badge className="bg-accent/20 text-accent border-accent/40 text-base px-4 py-1 gap-2">
+        <ShieldCheck className="h-4 w-4" /> Safe
+      </Badge>
+    );
+  if (verdict === "Suspicious")
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/40 text-base px-4 py-1 gap-2">
+        <TriangleAlert className="h-4 w-4" /> Suspicious
+      </Badge>
+    );
   return (
-    <div
-      className={`flex items-start gap-3 p-4 rounded-lg border ${statusBorder} ${statusBg}`}
-    >
-      <div className={`mt-0.5 ${statusColor}`}>{source.icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="font-semibold text-sm">{source.name}</span>
-          <Badge
-            variant={source.isSafe ? "default" : "destructive"}
-            className={`text-xs shrink-0 ${source.isSafe ? "bg-accent/20 text-accent border-accent/30" : ""}`}
-          >
-            {source.isSafe ? "Clean" : "Flagged"}
-          </Badge>
+    <Badge className="bg-destructive/20 text-destructive border-destructive/40 text-base px-4 py-1 gap-2">
+      <ShieldX className="h-4 w-4" /> Phishing
+    </Badge>
+  );
+}
+
+function ScoreRing({ score, verdict }: { score: number; verdict: string }) {
+  const color =
+    verdict === "Safe"
+      ? "#22c55e"
+      : verdict === "Suspicious"
+        ? "#eab308"
+        : "#ef4444";
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg
+        width="120"
+        height="120"
+        className="-rotate-90"
+        role="img"
+        aria-label={`Trust score: ${score}`}
+      >
+        <title>Trust score ring: {score}/100</title>
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          stroke="oklch(var(--border))"
+          strokeWidth="8"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeDasharray={circ}
+          strokeDashoffset={circ - (score / 100) * circ}
+          strokeLinecap="round"
+          style={{
+            filter: `drop-shadow(0 0 6px ${color})`,
+            transition: "stroke-dashoffset 1s ease",
+          }}
+        />
+      </svg>
+      <div className="absolute text-center">
+        <div className="text-2xl font-bold font-mono" style={{ color }}>
+          {score}
         </div>
-        <p className="text-xs text-muted-foreground">{source.detail}</p>
-        <div className="mt-2 flex items-center gap-2">
-          <Progress value={source.confidence} className="h-1.5 flex-1" />
-          <span className={`text-xs font-medium ${statusColor}`}>
-            {source.confidence}%
-          </span>
-        </div>
+        <div className="text-xs text-muted-foreground">Trust</div>
       </div>
     </div>
   );
 }
 
 export default function TrustScoreDisplay({
-  isSafe,
-  confidence,
+  verdict,
+  trustScore,
   apiSources,
-}: TrustScoreDisplayProps) {
-  const statusColor = isSafe ? "text-accent" : "text-destructive";
-  const statusBg = isSafe ? "bg-accent/10" : "bg-destructive/10";
-  const statusBorder = isSafe ? "border-accent/30" : "border-destructive/30";
-  const glowClass = isSafe ? "cyber-glow-green" : "";
-
-  // Default API sources derived from the overall result if not provided
-  const sources: APISourceResult[] = apiSources ?? [
-    {
-      name: "Google Safe Browsing",
-      icon: <Globe className="h-5 w-5" />,
-      isSafe: isSafe,
-      detail: isSafe
-        ? "No threats found in Google Safe Browsing database. URL is not listed as phishing, malware, or unwanted software."
-        : "URL matched entries in Google Safe Browsing threat database. Potential phishing or malware risk detected.",
-      confidence: Math.min(100, confidence + (isSafe ? 2 : -2)),
-    },
-    {
-      name: "VirusTotal",
-      icon: <Scan className="h-5 w-5" />,
-      isSafe: isSafe,
-      detail: isSafe
-        ? "Scanned by 70+ antivirus engines — no malicious indicators detected. Domain reputation is clean."
-        : "Multiple antivirus engines flagged this URL as suspicious or malicious. High-risk content detected.",
-      confidence: Math.min(100, confidence + (isSafe ? 1 : -1)),
-    },
-    {
-      name: "PhishTank",
-      icon: <Fish className="h-5 w-5" />,
-      isSafe: isSafe,
-      detail: isSafe
-        ? "Not found in PhishTank phishing database. No community-verified phishing reports for this URL."
-        : "URL found in PhishTank phishing database. Community-verified phishing attempt identified.",
-      confidence: Math.min(100, confidence),
-    },
-  ];
-
-  const safeCount = sources.filter((s) => s.isSafe).length;
-  const flaggedCount = sources.length - safeCount;
-
+}: Props) {
+  const icons: Record<string, React.ReactNode> = {
+    "Google Safe Browsing": <Globe className="h-5 w-5" />,
+    VirusTotal: <Scan className="h-5 w-5" />,
+    PhishTank: <Fish className="h-5 w-5" />,
+  };
   return (
-    <Card
-      className={`${statusBorder} border-2 shadow-lg bg-card/50 backdrop-blur-sm`}
-    >
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">Trust Score Analysis</CardTitle>
-          <Badge
-            variant={isSafe ? "default" : "destructive"}
-            className="text-lg px-4 py-2"
-          >
-            {isSafe ? "SAFE" : "UNSAFE"}
-          </Badge>
-        </div>
-        <CardDescription>
-          Comprehensive threat assessment from 3 security APIs
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Status Icon and Message */}
-        <div
-          className={`flex items-center gap-4 p-6 rounded-lg ${statusBg} border ${statusBorder}`}
-        >
-          {isSafe ? (
-            <Shield
-              className={`h-16 w-16 ${statusColor} ${glowClass} shrink-0`}
-            />
-          ) : (
-            <ShieldAlert className={`h-16 w-16 ${statusColor} shrink-0`} />
-          )}
-          <div className="flex-1">
-            <h3 className={`text-2xl font-bold ${statusColor} ${glowClass}`}>
-              {isSafe ? "Content Appears Safe" : "Potential Threat Detected"}
-            </h3>
-            <p className="text-muted-foreground mt-1">
-              {isSafe
-                ? `All ${sources.length} security APIs confirmed this content is likely legitimate.`
-                : `${flaggedCount} of ${sources.length} security APIs flagged this content as suspicious.`}
-            </p>
-            <div className="flex gap-3 mt-3">
-              <span className="text-xs flex items-center gap-1 text-accent">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {safeCount} Clean
-              </span>
-              {flaggedCount > 0 && (
-                <span className="text-xs flex items-center gap-1 text-destructive">
-                  <XCircle className="h-3.5 w-3.5" />
-                  {flaggedCount} Flagged
-                </span>
-              )}
+    <div className="space-y-4">
+      <Card className="cyber-border bg-card/50 backdrop-blur-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <ScoreRing score={trustScore} verdict={verdict} />
+            <div className="flex-1 text-center sm:text-left">
+              <p className="text-sm text-muted-foreground mb-2">
+                Overall Verdict
+              </p>
+              <VerdictBadge verdict={verdict} />
+              <p className="mt-3 text-sm text-muted-foreground">
+                {verdict === "Safe"
+                  ? "No threats detected. This URL appears to be safe."
+                  : verdict === "Suspicious"
+                    ? "Exercise caution. This URL shows suspicious characteristics."
+                    : "High risk detected. Avoid visiting this URL."}
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Confidence Score */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <FieldLabel className="text-lg font-semibold">
-              Overall Confidence Level
-            </FieldLabel>
-            <span className={`text-2xl font-bold ${statusColor} ${glowClass}`}>
-              {confidence}%
-            </span>
-          </div>
-          <Progress value={confidence} className="h-3" />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {confidence >= 90 ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-accent" />
-                <span>High confidence in assessment</span>
-              </>
-            ) : confidence >= 70 ? (
-              <>
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                <span>Moderate confidence — exercise caution</span>
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <span>
-                  Lower confidence — additional verification recommended
+        </CardContent>
+      </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {apiSources.map((src) => (
+          <Card
+            key={src.name}
+            className={`bg-card/40 backdrop-blur-sm border ${src.isSafe ? "border-accent/30" : "border-destructive/30"}`}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <span
+                  className={src.isSafe ? "text-accent" : "text-destructive"}
+                >
+                  {icons[src.name]}
                 </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Per-API Breakdown */}
-        <div className="space-y-3">
-          <h4 className="font-semibold text-base">API Source Breakdown</h4>
-          <div className="space-y-3">
-            {sources.map((source) => (
-              <APISourceCard key={source.name} source={source} />
-            ))}
-          </div>
-        </div>
-
-        {/* Recommendation */}
-        <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-          <h4 className="font-semibold mb-2">Recommendation</h4>
-          <p className="text-sm text-muted-foreground">
-            {isSafe
-              ? "While our multi-API analysis suggests this content is safe, always exercise caution when sharing personal information online."
-              : "We recommend avoiding interaction with this content. Do not click links, download files, or share personal information. Report suspicious URLs to your IT security team."}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+                {src.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">{src.detail}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded-full bg-border">
+                  <div
+                    className="h-1.5 rounded-full transition-all"
+                    style={{
+                      width: `${src.confidence}%`,
+                      background: src.isSafe
+                        ? "oklch(var(--accent))"
+                        : "oklch(var(--destructive))",
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {src.confidence}%
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }

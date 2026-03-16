@@ -1,94 +1,103 @@
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { LogIn, LogOut, UserPlus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LogIn, LogOut, ShieldCheck, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentUser, logoutUser } from "../utils/userAuth";
 
 export default function Header() {
-  const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [user, setUser] = useState(getCurrentUser());
 
   useEffect(() => {
-    const onFocus = () => setCurrentUser(getCurrentUser());
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    const sync = () => setUser(getCurrentUser());
+    window.addEventListener("storage", sync);
+    window.addEventListener("tl-auth-change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("tl-auth-change", sync);
+    };
   }, []);
 
   const handleLogout = () => {
     logoutUser();
-    setCurrentUser(null);
-    navigate({ to: "/" });
+    setUser(null);
+    window.dispatchEvent(new Event("tl-auth-change"));
+    window.location.href = "/";
   };
 
   return (
-    <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2 group"
-            data-ocid="header.home.link"
-          >
-            <img
-              src="/assets/generated/truth-lens-logo-transparent.dim_256x256.png"
-              alt="Truth-Lens"
-              className="h-14 w-14 drop-shadow-[0_0_8px_rgba(0,200,255,0.5)]"
-            />
-            <span className="text-2xl font-bold cyber-glow group-hover:cyber-glow-green transition-all">
-              Truth-Lens
-            </span>
+    <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Link
+          to="/"
+          className="flex items-center gap-3 group"
+          data-ocid="nav.link"
+        >
+          <img
+            src="/assets/generated/logo-transparent.dim_256x256.png"
+            alt="Truth-Lens"
+            className="h-10 w-10 drop-shadow-[0_0_8px_oklch(var(--primary)/0.8)] transition-transform group-hover:scale-110"
+          />
+          <span className="text-xl font-bold tracking-tight cyber-glow hidden sm:inline">
+            Truth-Lens
+          </span>
+        </Link>
+
+        <nav className="flex items-center gap-1">
+          <Link to="/" data-ocid="nav.home.link">
+            <Button variant="ghost" size="sm">
+              Home
+            </Button>
           </Link>
-          <nav className="flex items-center gap-2">
-            <Link to="/scan">
-              <Button
-                variant="ghost"
-                className="text-foreground hover:text-primary"
-                data-ocid="header.scan.link"
-              >
-                Scan
-              </Button>
-            </Link>
-            {currentUser ? (
-              <>
-                <span className="text-sm text-muted-foreground hidden sm:block px-2">
-                  Hi,{" "}
-                  <span className="text-foreground font-medium">
-                    {currentUser.name}
-                  </span>
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={handleLogout}
-                  className="border-primary/40 hover:bg-primary/10 gap-1.5"
-                  data-ocid="header.logout.button"
-                >
-                  <LogOut className="h-4 w-4" /> Logout
+          <Link to="/scan" data-ocid="nav.scan.link">
+            <Button variant="ghost" size="sm">
+              Scanner
+            </Button>
+          </Link>
+          {user ? (
+            <>
+              <Link to="/profile" data-ocid="nav.profile.link">
+                <Button variant="ghost" size="sm" className="text-accent">
+                  Hi, {user.name.split(" ")[0]}
                 </Button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button
-                    variant="ghost"
-                    className="border border-border/50 hover:border-primary/50 gap-1.5"
-                    data-ocid="header.login.button"
-                  >
-                    <LogIn className="h-4 w-4" /> Login
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button
-                    variant="default"
-                    className="bg-primary/90 hover:bg-primary shadow-cyber-glow gap-1.5"
-                    data-ocid="header.register.button"
-                  >
-                    <UserPlus className="h-4 w-4" /> Register
-                  </Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                data-ocid="nav.logout.button"
+              >
+                <LogOut className="mr-1 h-4 w-4" /> Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" data-ocid="nav.login.link">
+                <Button variant="ghost" size="sm">
+                  <LogIn className="mr-1 h-4 w-4" /> Login
+                </Button>
+              </Link>
+              <Link to="/register" data-ocid="nav.register.link">
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 shadow-cyber-glow"
+                >
+                  <UserPlus className="mr-1 h-4 w-4" /> Register
+                </Button>
+              </Link>
+            </>
+          )}
+          <Link to="/admin/login" data-ocid="nav.admin.link">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-primary"
+            >
+              <ShieldCheck className="mr-1 h-4 w-4" />
+              <span className="hidden sm:inline">Admin</span>
+            </Button>
+          </Link>
+        </nav>
       </div>
     </header>
   );

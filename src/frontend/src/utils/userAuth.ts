@@ -30,9 +30,8 @@ export function registerUser(
   username: string,
   password: string,
 ): { ok: true } | { err: string } {
-  if (!name.trim() || !username.trim() || !password.trim()) {
+  if (!name.trim() || !username.trim() || !password.trim())
     return { err: "All fields are required." };
-  }
   const users = getUsers();
   if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
     return { err: "Username already taken. Please choose another." };
@@ -52,9 +51,7 @@ export function loginUser(
       u.username.toLowerCase() === username.toLowerCase() &&
       u.password === password,
   );
-  if (!user) {
-    return { err: "Invalid username or password." };
-  }
+  if (!user) return { err: "Invalid username or password." };
   const current: CurrentUser = { username: user.username, name: user.name };
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(current));
   return { ok: true };

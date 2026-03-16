@@ -1,23 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect } from "react";
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
-
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn") === "true";
-
   useEffect(() => {
-    if (!isAdminLoggedIn) {
+    if (localStorage.getItem("isAdminLoggedIn") !== "true") {
       navigate({ to: "/admin/login" });
     }
-  }, [isAdminLoggedIn, navigate]);
-
-  if (!isAdminLoggedIn) {
-    return null;
-  }
-
+  }, [navigate]);
+  if (localStorage.getItem("isAdminLoggedIn") !== "true") return null;
   return <>{children}</>;
 }

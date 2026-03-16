@@ -1,66 +1,38 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  BarChart2,
+  BarChart3,
+  ClipboardList,
   FileSearch,
   LogOut,
   Settings,
-  Shield,
   Users,
 } from "lucide-react";
+import { useEffect } from "react";
 import AnalyticsTab from "../components/admin/AnalyticsTab";
 import SiteConfigurationTab from "../components/admin/SiteConfigurationTab";
 import SubmissionModerationTab from "../components/admin/SubmissionModerationTab";
 import UserManagementTab from "../components/admin/UserManagementTab";
-import { useGetAllScanResults, useGetAllUsers } from "../hooks/useQueries";
+import { useGetAdminLog, useGetSystemStats } from "../hooks/useQueries";
 
 function StatCard({
   label,
   value,
-  icon,
-  colorClass,
-  glowColor,
-  isLoading,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  colorClass: string;
-  glowColor: string;
-  isLoading: boolean;
-}) {
+  color,
+}: { label: string; value: string | number; color: string }) {
   return (
     <Card
-      className="bg-card/50 backdrop-blur-sm border"
-      style={{
-        borderColor: `${glowColor}30`,
-        boxShadow: `0 0 20px ${glowColor}15`,
-      }}
+      className="bg-card/40 backdrop-blur-sm"
+      style={{ borderColor: color, boxShadow: `0 0 12px ${color}30` }}
     >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-              {label}
-            </p>
-            {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <p className={`text-3xl font-bold font-mono ${colorClass}`}>
-                {value}
-              </p>
-            )}
-          </div>
-          <div
-            className="p-2 rounded-lg"
-            style={{ background: `${glowColor}15`, color: glowColor }}
-          >
-            {icon}
-          </div>
+      <CardContent className="pt-4 pb-4">
+        <div className="text-2xl font-bold font-mono" style={{ color }}>
+          {value}
         </div>
+        <div className="text-xs text-muted-foreground mt-1">{label}</div>
       </CardContent>
     </Card>
   );
@@ -68,16 +40,13 @@ function StatCard({
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: scanResults, isLoading: scansLoading } = useGetAllScanResults();
-  const { data: users, isLoading: usersLoading } = useGetAllUsers();
+  const { data: stats } = useGetSystemStats();
+  const { data: auditLog, isLoading: logLoading } = useGetAdminLog();
 
-  const totalScans = scanResults?.length ?? 0;
-  const safeScans = scanResults?.filter((s) => s.isSafe).length ?? 0;
-  const unsafeScans = totalScans - safeScans;
-  const totalUsers = users?.length ?? 0;
-  const threatRate =
-    totalScans > 0 ? Math.round((unsafeScans / totalScans) * 100) : 0;
-  const statsLoading = scansLoading || usersLoading;
+  useEffect(() => {
+    if (localStorage.getItem("isAdminLoggedIn") !== "true")
+      navigate({ to: "/admin/login" });
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
@@ -85,200 +54,195 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg"
-              style={{ background: "oklch(0.65 0.25 220 / 0.15)" }}
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundImage: "url(/assets/generated/hero-bg.dim_1920x1080.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="min-h-screen bg-background/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <img
+                src="/assets/generated/icon-shield-transparent.dim_128x128.png"
+                alt="Admin shield icon"
+                className="h-10 w-10 drop-shadow-[0_0_10px_oklch(var(--primary)/0.7)]"
+              />
+              <div>
+                <h1 className="text-3xl font-bold cyber-glow">
+                  Admin Dashboard
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Truth-Lens Control Center
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              data-ocid="admin.logout.button"
             >
-              <Shield
-                className="h-7 w-7 cyber-glow"
-                style={{ color: "oklch(0.65 0.25 220)" }}
+              <LogOut className="mr-2 h-4 w-4" /> Logout
+            </Button>
+          </div>
+
+          {stats && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+              <StatCard
+                label="Total Scans"
+                value={Number(stats.totalScans)}
+                color="oklch(var(--primary))"
+              />
+              <StatCard
+                label="Safe"
+                value={Number(stats.safeCount)}
+                color="oklch(var(--accent))"
+              />
+              <StatCard
+                label="Suspicious"
+                value={Number(stats.suspiciousCount)}
+                color="#eab308"
+              />
+              <StatCard
+                label="Phishing"
+                value={Number(stats.phishingCount)}
+                color="oklch(var(--destructive))"
+              />
+              <StatCard
+                label="Total Users"
+                value={Number(stats.totalUsers)}
+                color="oklch(var(--primary))"
               />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold cyber-glow font-mono tracking-tight">
-                Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground text-xs mt-0.5 tracking-wide">
-                Truth-Lens Security Control Center
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="border-destructive/40 hover:bg-destructive/10 hover:text-destructive text-destructive/80 font-mono text-xs"
-            data-ocid="admin.logout.button"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            LOGOUT
-          </Button>
+          )}
+
+          <Tabs defaultValue="users" className="space-y-4">
+            <TabsList className="bg-card/50 border border-primary/20 p-1 h-auto gap-1 flex-wrap">
+              <TabsTrigger
+                value="users"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2"
+                data-ocid="admin.users.tab"
+              >
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Users</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="scans"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2"
+                data-ocid="admin.scans.tab"
+              >
+                <FileSearch className="h-4 w-4" />
+                <span className="hidden sm:inline">Scan History</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="config"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2"
+                data-ocid="admin.config.tab"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Config</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="audit"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2"
+                data-ocid="admin.audit.tab"
+              >
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden sm:inline">Audit Log</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="analytics"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2"
+                data-ocid="admin.analytics.tab"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="users">
+              <div className="rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Users className="h-5 w-5 text-primary" /> User Management
+                </h2>
+                <UserManagementTab />
+              </div>
+            </TabsContent>
+            <TabsContent value="scans">
+              <div className="rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <FileSearch className="h-5 w-5 text-primary" /> Submission
+                  Moderation
+                </h2>
+                <SubmissionModerationTab />
+              </div>
+            </TabsContent>
+            <TabsContent value="config">
+              <div className="rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Settings className="h-5 w-5 text-primary" /> Site
+                  Configuration
+                </h2>
+                <SiteConfigurationTab />
+              </div>
+            </TabsContent>
+            <TabsContent value="audit">
+              <div className="rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <ClipboardList className="h-5 w-5 text-primary" /> Audit Log
+                </h2>
+                {logLoading ? (
+                  <div
+                    className="flex items-center justify-center py-12"
+                    data-ocid="audit.loading_state"
+                  >
+                    <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : !auditLog || auditLog.length === 0 ? (
+                  <div
+                    className="text-center py-12 text-muted-foreground"
+                    data-ocid="audit.empty_state"
+                  >
+                    <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p>No audit log entries yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2" data-ocid="audit.list">
+                    {auditLog.map((entry, i) => (
+                      <div
+                        key={`${entry.timestamp}-${i}`}
+                        className="flex items-start justify-between rounded-lg border border-border/30 bg-muted/10 px-4 py-3"
+                        data-ocid={`audit.item.${i + 1}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge className="bg-primary/10 text-primary border-primary/30 font-mono text-xs">
+                            ACTION
+                          </Badge>
+                          <span className="text-sm">{entry.action}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono shrink-0 ml-4">
+                          {entry.timestamp}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="analytics">
+              <div className="rounded-xl border border-primary/20 bg-card/50 backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <BarChart3 className="h-5 w-5 text-primary" /> Analytics
+                </h2>
+                <AnalyticsTab />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
-
-        {/* Stats Row */}
-        <div
-          className="grid grid-cols-2 md:grid-cols-5 gap-4"
-          data-ocid="admin.stats.panel"
-        >
-          <StatCard
-            label="Total Scans"
-            value={totalScans}
-            icon={<FileSearch className="h-5 w-5" />}
-            colorClass="text-primary"
-            glowColor="oklch(0.65 0.25 220)"
-            isLoading={statsLoading}
-          />
-          <StatCard
-            label="Safe"
-            value={safeScans}
-            icon={<Shield className="h-5 w-5" />}
-            colorClass="text-accent"
-            glowColor="oklch(0.7 0.28 160)"
-            isLoading={statsLoading}
-          />
-          <StatCard
-            label="Threats"
-            value={unsafeScans}
-            icon={<Shield className="h-5 w-5" />}
-            colorClass="text-destructive"
-            glowColor="oklch(0.6 0.25 25)"
-            isLoading={statsLoading}
-          />
-          <StatCard
-            label="Total Users"
-            value={totalUsers}
-            icon={<Users className="h-5 w-5" />}
-            colorClass="text-yellow-400"
-            glowColor="oklch(0.8 0.18 80)"
-            isLoading={statsLoading}
-          />
-          <StatCard
-            label="Threat Rate"
-            value={`${threatRate}%`}
-            icon={<BarChart2 className="h-5 w-5" />}
-            colorClass={
-              threatRate > 30 ? "text-destructive" : "text-muted-foreground"
-            }
-            glowColor={
-              threatRate > 30 ? "oklch(0.6 0.25 25)" : "oklch(0.5 0.05 240)"
-            }
-            isLoading={statsLoading}
-          />
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="bg-card/50 border border-border/50 p-1 h-auto gap-1 flex-wrap">
-            <TabsTrigger
-              value="users"
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 font-mono text-xs uppercase tracking-wider"
-              data-ocid="admin.users.tab"
-            >
-              <Users className="h-4 w-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger
-              value="submissions"
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 font-mono text-xs uppercase tracking-wider"
-              data-ocid="admin.scans.tab"
-            >
-              <FileSearch className="h-4 w-4" />
-              Submissions
-            </TabsTrigger>
-            <TabsTrigger
-              value="analytics"
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 font-mono text-xs uppercase tracking-wider"
-              data-ocid="admin.analytics.tab"
-            >
-              <BarChart2 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger
-              value="config"
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 font-mono text-xs uppercase tracking-wider"
-              data-ocid="admin.config.tab"
-            >
-              <Settings className="h-4 w-4" />
-              Config
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="users" className="mt-0">
-            <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold flex items-center gap-2 font-mono">
-                  <Users
-                    className="h-5 w-5"
-                    style={{ color: "oklch(0.65 0.25 220)" }}
-                  />
-                  User Management
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  View, ban, or remove registered users.
-                </p>
-              </div>
-              <UserManagementTab />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="submissions" className="mt-0">
-            <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold flex items-center gap-2 font-mono">
-                  <FileSearch
-                    className="h-5 w-5"
-                    style={{ color: "oklch(0.65 0.25 220)" }}
-                  />
-                  Submission Moderation
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Review, filter, bulk delete, or export scan submissions.
-                </p>
-              </div>
-              <SubmissionModerationTab />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="mt-0">
-            <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold flex items-center gap-2 font-mono">
-                  <BarChart2
-                    className="h-5 w-5"
-                    style={{ color: "oklch(0.65 0.25 220)" }}
-                  />
-                  Analytics
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Scan verdict breakdown and confidence score distribution.
-                </p>
-              </div>
-              <AnalyticsTab />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="config" className="mt-0">
-            <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-6">
-              <div className="mb-5">
-                <h2 className="text-lg font-semibold flex items-center gap-2 font-mono">
-                  <Settings
-                    className="h-5 w-5"
-                    style={{ color: "oklch(0.65 0.25 220)" }}
-                  />
-                  Site Configuration
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Manage global platform settings and feature flags.
-                </p>
-              </div>
-              <SiteConfigurationTab />
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

@@ -1,147 +1,83 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, FileText, Link as LinkIcon } from "lucide-react";
+import { Loader2, ScanSearch } from "lucide-react";
 import { useState } from "react";
-import { useScanAnalysis } from "../hooks/useQueries";
-import LoadingSpinner from "./LoadingSpinner";
+import { toast } from "sonner";
+import { useScanUrlOrText } from "../hooks/useQueries";
 
 export default function ScanForm() {
-  const [urlInput, setUrlInput] = useState("");
-  const [textInput, setTextInput] = useState("");
-  const [activeTab, setActiveTab] = useState("url");
+  const [input, setInput] = useState("");
   const navigate = useNavigate();
+  const scanMutation = useScanUrlOrText();
 
-  const { mutate: scanContent, isPending, error } = useScanAnalysis();
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const input = activeTab === "url" ? urlInput : textInput;
-
-    if (!input.trim()) {
-      return;
+    if (!input.trim()) return;
+    try {
+      const result = await scanMutation.mutateAsync(input.trim());
+      sessionStorage.setItem(
+        "lastScanResult",
+        JSON.stringify({ result, input: input.trim() }),
+      );
+      navigate({ to: "/results" });
+    } catch {
+      toast.error("Scan failed. Please try again.");
     }
-
-    scanContent(input, {
-      onSuccess: (data) => {
-        // Store result in sessionStorage for retrieval on results page
-        sessionStorage.setItem(
-          "lastScanResult",
-          JSON.stringify({ result: data, input }),
-        );
-        navigate({ to: "/results" });
-      },
-    });
   };
 
-  const isFormValid =
-    activeTab === "url"
-      ? urlInput.trim().length > 0
-      : textInput.trim().length > 0;
-
   return (
-    <Card className="cyber-border shadow-cyber-glow bg-card/50 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl cyber-glow">Analyze Content</CardTitle>
-        <CardDescription>
-          Choose your input method and scan for potential threats
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit}>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Textarea
+        placeholder="Enter a URL (https://suspicious-site.com) or paste text to analyze..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        rows={4}
+        className="cyber-border bg-card/50 font-mono text-sm resize-none focus-visible:ring-primary"
+        disabled={scanMutation.isPending}
+        data-ocid="scan.textarea"
+      />
+      <div className="flex flex-wrap gap-2">
+        <span className="text-xs text-muted-foreground self-center">Try:</span>
+        {[
+          "https://secure-bank-login.verify-now.com",
+          "https://google.com",
+          "http://192.168.1.1/phishing",
+        ].map((ex) => (
+          <button
+            key={ex}
+            type="button"
+            onClick={() => setInput(ex)}
+            className="text-xs px-2 py-1 rounded border border-border/50 hover:border-primary/50 hover:text-primary transition-colors font-mono"
           >
-            <TabsList
-              className="grid w-full grid-cols-2 mb-6"
-              data-ocid="scan.tab"
-            >
-              <TabsTrigger value="url" className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4" />
-                URL Scan
-              </TabsTrigger>
-              <TabsTrigger value="text" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Text Analysis
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="url" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="url-input">Suspicious URL</Label>
-                <Input
-                  id="url-input"
-                  type="text"
-                  placeholder="https://example.com or paste any suspicious link"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  className="cyber-border"
-                  disabled={isPending}
-                  data-ocid="scan.url_input"
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="text" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="text-input">Text Content</Label>
-                <Textarea
-                  id="text-input"
-                  placeholder="Paste suspicious text, email content, or message to analyze..."
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  className="cyber-border min-h-[150px]"
-                  disabled={isPending}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          {error && (
-            <Alert
-              variant="destructive"
-              className="mt-4"
-              data-ocid="scan.error_state"
-            >
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error.message || "Failed to scan content. Please try again."}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <Button
-            type="submit"
-            size="lg"
-            disabled={!isFormValid || isPending}
-            className="w-full mt-6 bg-primary hover:bg-primary/90 shadow-cyber-glow text-lg"
-            data-ocid="scan.submit_button"
-          >
-            {isPending ? (
-              <>
-                <LoadingSpinner size="sm" className="mr-2" />
-                Analyzing...
-              </>
-            ) : (
-              "Scan Now"
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            {ex.length > 38 ? `${ex.slice(0, 38)}...` : ex}
+          </button>
+        ))}
+      </div>
+      <Button
+        type="submit"
+        size="lg"
+        disabled={scanMutation.isPending || !input.trim()}
+        className="w-full bg-primary hover:bg-primary/90 shadow-cyber-glow text-lg font-semibold"
+        data-ocid="scan.submit_button"
+      >
+        {scanMutation.isPending ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Analyzing...
+          </>
+        ) : (
+          <>
+            <ScanSearch className="mr-2 h-5 w-5" /> Scan Now
+          </>
+        )}
+      </Button>
+      {scanMutation.isPending && (
+        <div className="text-center" data-ocid="scan.loading_state">
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Scanning with Google Safe Browsing, VirusTotal &amp; PhishTank...
+          </p>
+        </div>
+      )}
+    </form>
   );
 }
